@@ -1624,19 +1624,52 @@
   }
 
   /* ---------- checkout ---------- */
-  function openCheckout(){
+  let lastVerifiedCheckout = null;
+
+  async function verifyCart(){
+    const items = Object.values(cart).map(it => ({ id: it.id, taille: it.size || '', quantite: it.qty }));
+    const res = await fetch('/api/panier/verifier', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    });
+    return res.json();
+  }
+
+  async function openCheckout(){
     if(Object.keys(cart).length===0){ showToast('Votre panier est vide'); return; }
     closeAllOverlays();
     document.getElementById('overlayBg').classList.add('open');
     document.getElementById('checkoutTitle').textContent='Finaliser la commande';
-    const total = Object.values(cart).reduce((s,it)=>s+it.price*it.qty,0);
-    const rowsHtml = Object.values(cart).map(it=>{
-      const variantBits = [it.size ? 'taille '+it.size : null, it.color || null].filter(Boolean);
-      const variantTxt = variantBits.length ? ' ('+variantBits.join(', ')+')' : '';
-      return '<div class="row"><span>'+it.name+variantTxt+' × '+it.qty+'</span><span>'+fmtPrice(it.price*it.qty)+'</span></div>';
+    document.getElementById('checkoutBody').innerHTML = '<p style="text-align:center;color:var(--bone-dim);padding:24px 0;">Vérification du panier…</p>';
+    document.getElementById('checkoutModal').classList.add('open');
+
+    let result;
+    try{
+      result = await verifyCart();
+    }catch(err){
+      document.getElementById('checkoutBody').innerHTML = '<p style="text-align:center;color:var(--oxblood-light);padding:24px 0;">Impossible de vérifier le panier pour le moment. Réessaie dans un instant.</p>';
+      return;
+    }
+
+    if(!result.valide){
+      const errList = result.erreurs.map(e=>'<li>'+escapeHtml(e.message)+'</li>').join('');
+      document.getElementById('checkoutBody').innerHTML =
+        '<div style="padding:8px 0;">'
+        + '<p style="color:var(--oxblood-light);margin-bottom:8px;">Certains articles de ton panier ne sont plus disponibles :</p>'
+        + '<ul style="margin:0 0 16px 18px;color:var(--bone-dim);font-size:14px;">'+errList+'</ul>'
+        + '<button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="closeAllOverlays();openCart();">Retourner au panier</button>'
+        + '</div>';
+      return;
+    }
+
+    lastVerifiedCheckout = result;
+    const rowsHtml = result.lignes.map(l=>{
+      const variantTxt = l.taille ? ' (taille '+escapeHtml(l.taille)+')' : '';
+      return '<div class="row"><span>'+escapeHtml(l.nom)+variantTxt+' × '+l.quantite+'</span><span>'+fmtPrice(l.sousTotal)+'</span></div>';
     }).join('');
     document.getElementById('checkoutBody').innerHTML =
-      '<div class="checkout-summary">'+rowsHtml+'<div class="row total"><span>Total</span><span>'+fmtPrice(total)+'</span></div></div>'
+      '<div class="checkout-summary">'+rowsHtml+'<div class="row total"><span>Total</span><span>'+fmtPrice(result.total)+'</span></div></div>'
       + '<form id="checkoutForm" onsubmit="submitOrder(event)">'
       + '<div class="form-row"><label>Nom complet</label><input required id="ckName" placeholder="Camille Martin"></div>'
       + '<div class="form-row"><label>Email</label><input required type="email" id="ckEmail" placeholder="vous@exemple.fr"></div>'
@@ -1648,18 +1681,37 @@
       + '<button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">Valider la commande</button>'
       + '<p style="font-size:12px;color:var(--bone-dim);margin-top:12px;">Démonstration : aucun paiement réel n\'est demandé ici. Un vrai site marchand nécessite un module de paiement (Stripe, PayPal…) branché à ce formulaire.</p>'
       + '</form>';
-    document.getElementById('checkoutModal').classList.add('open');
   }
-  function submitOrder(e){
+  async function submitOrder(e){
     e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Vérification…';
+
+    let result;
+    try{
+      result = await verifyCart();
+    }catch(err){
+      showToast("Impossible de finaliser la commande pour le moment");
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Valider la commande';
+      return;
+    }
+    if(!result.valide){
+      showToast("Le panier a changé, merci de vérifier à nouveau");
+      openCheckout();
+      return;
+    }
+
     const name = document.getElementById('ckName').value;
     const orderNo = 'LC-' + Math.floor(100000+Math.random()*899999);
     document.getElementById('checkoutTitle').textContent='Commande enregistrée';
     document.getElementById('checkoutBody').innerHTML =
       '<div class="confirm-box">'
       + '<div class="ok-icon">✓</div>'
-      + '<h4>Merci, '+name.split(' ')[0]+' !</h4>'
+      + '<h4>Merci, '+escapeHtml(name.split(' ')[0])+' !</h4>'
       + '<p>Référence de démonstration : <strong>'+orderNo+'</strong></p>'
+      + '<p>Total vérifié : <strong>'+fmtPrice(result.total)+'</strong></p>'
       + '<p>Un e-mail de confirmation partirait à cette adresse sur un site en production.</p>'
       + '</div>'
       + '<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;" onclick="closeAllOverlays()">Fermer</button>';
