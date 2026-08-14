@@ -829,6 +829,43 @@
   </div>
 </section>
 
+<!-- ================= PAGE REJOINDRE UNE BANDE ================= -->
+<section id="bandePage" style="display:none;">
+  <div class="wrap" style="max-width:760px;">
+    <button class="back-btn" onclick="goHome()">← Retour à la boutique</button>
+    <div class="section-head">
+      <div class="kicker" id="bpKicker">Bande</div>
+      <h2 id="bpTitle"></h2>
+      <p id="bpSubtitle" style="color:var(--bone-dim);"></p>
+    </div>
+    <div id="bpPersonnages" class="mock-share" style="margin-bottom:24px;"></div>
+    <div id="bpJoinForm">
+      <h3 class="pp-section-title">Rejoindre la bande</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;max-width:420px;">
+        <input type="text" id="bpPrenom" placeholder="Ton prénom" style="background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
+        <select id="bpPersonnageSelect" style="background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
+          <option value="">Choisir un personnage…</option>
+        </select>
+        <select id="bpTailleSelect" style="background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
+          <option value="">Choisir une taille…</option>
+          <option value="XS">XS</option>
+          <option value="S">S</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="XL">XL</option>
+          <option value="XXL">XXL</option>
+        </select>
+        <button class="btn btn-primary" style="justify-content:center;" onclick="handleRejoindre()">Valider ma participation</button>
+        <div id="bpError" style="color:var(--oxblood-light);font-size:13px;display:none;"></div>
+      </div>
+    </div>
+    <div id="bpSuccess" style="display:none;text-align:center;padding:40px 0;">
+      <h3></h3>
+      <p id="bpSuccessMsg" style="color:var(--bone-dim);"></p>
+    </div>
+  </div>
+</section>
+
 <section class="home-section">
   <div class="wrap">
     <div class="section-head">
@@ -1111,9 +1148,12 @@
   /* ---------- routing ---------- */
   function route(){
     const hash = window.location.hash;
-    const m = hash.match(/^#\/produit\/(.+)$/);
-    if(m){
-      openProduct(decodeURIComponent(m[1]), false);
+    const mProduit = hash.match(/^#\/produit\/(.+)$/);
+    const mBande = hash.match(/^#\/bande\/(.+)$/);
+    if(mProduit){
+      openProduct(decodeURIComponent(mProduit[1]), false);
+    } else if(mBande){
+      openBandePage(decodeURIComponent(mBande[1]), false);
     } else {
       showHomeSections();
     }
@@ -1131,6 +1171,7 @@
   function showHomeSections(){
     document.getElementById('productPage').style.display='none';
     document.getElementById('notFoundPage').style.display='none';
+    document.getElementById('bandePage').style.display='none';
     document.querySelectorAll('.home-section').forEach(s=> s.style.display='');
     document.getElementById('pageTitle').textContent = "La Clique — Déguisements Halloween pour duos & bandes";
     const desc = "Déguisements Halloween pensés pour deux ou pour toute la bande — coordonnés, à la bonne taille, livrés avant le 31 octobre.";
@@ -1159,6 +1200,7 @@
     if(!product){
       document.querySelectorAll('.home-section').forEach(s=> s.style.display='none');
       document.getElementById('productPage').style.display='none';
+      document.getElementById('bandePage').style.display='none';
       document.getElementById('notFoundPage').style.display='';
       document.getElementById('pageTitle').textContent = "Produit introuvable — La Clique";
       window.scrollTo({top:0,behavior:'smooth'});
@@ -1172,6 +1214,7 @@
 
     document.querySelectorAll('.home-section').forEach(s=> s.style.display='none');
     document.getElementById('notFoundPage').style.display='none';
+    document.getElementById('bandePage').style.display='none';
     document.getElementById('productPage').style.display='';
 
     renderProductPage(product);
@@ -1681,7 +1724,7 @@
       });
       if(!res.ok) throw new Error('creation failed');
       const data = await res.json();
-      const link = window.location.origin + '/bande/' + data.code;
+      const link = window.location.origin + '/#/bande/' + data.code;
       document.getElementById('shareLink').value = link;
       showToast('Bande créée — lien prêt à partager');
     }catch(err){
@@ -1694,6 +1737,117 @@
     input.select(); input.setSelectionRange(0,99999);
     try{ navigator.clipboard.writeText(input.value); }catch(err){}
     showToast('Lien de la bande copié');
+  }
+
+  /* ---------- bande page (rejoindre une bande) ---------- */
+  let currentBandeCode = null;
+  let currentBandeData = null;
+
+  async function openBandePage(code, pushHash){
+    closeAllOverlays();
+    currentBandeCode = code;
+    document.querySelectorAll('.home-section').forEach(s=> s.style.display='none');
+    document.getElementById('productPage').style.display='none';
+    document.getElementById('notFoundPage').style.display='none';
+    document.getElementById('bandePage').style.display='';
+    document.getElementById('bpJoinForm').style.display='none';
+    document.getElementById('bpSuccess').style.display='none';
+    document.getElementById('bpError').style.display='none';
+    document.getElementById('bpKicker').textContent = 'Bande';
+    document.getElementById('bpTitle').textContent = 'Chargement…';
+    document.getElementById('bpSubtitle').textContent = '';
+    document.getElementById('bpPersonnages').innerHTML = '';
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(pushHash !== false) window.location.hash = '#/bande/'+encodeURIComponent(code);
+
+    try{
+      const res = await fetch('/api/bandes/'+encodeURIComponent(code));
+      if(!res.ok) throw new Error('not found');
+      const data = await res.json();
+      currentBandeData = data;
+      renderBandePage(data);
+    }catch(err){
+      document.getElementById('bpKicker').textContent = 'Erreur';
+      document.getElementById('bpTitle').textContent = "Cette bande n'existe pas";
+      document.getElementById('bpSubtitle').textContent = "Le lien utilisé est invalide ou la bande a été supprimée.";
+    }
+  }
+
+  function updateBandeSummary(data){
+    const validCount = data.membres.filter(m=>m.statut==='valide').length;
+    document.getElementById('bpSubtitle').textContent = validCount+'/'+data.nb_personnes+' places prises';
+    const list = document.getElementById('bpPersonnages');
+    list.innerHTML = '<div class="hdr"><span>'+data.theme_nom+'</span><span>'+validCount+'/'+data.nb_personnes+' pris</span></div>' +
+      data.personnages.map(p=>{
+        const membre = data.membres.find(m=>m.personnage_id===p.id && m.statut==='valide');
+        const status = membre ? (membre.prenom+' — '+membre.taille) : 'disponible';
+        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
+          '<span>'+p.nom+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+'</span></div>';
+      }).join('');
+    return validCount;
+  }
+
+  function renderBandePage(data){
+    document.getElementById('bpKicker').textContent = 'Bande';
+    document.getElementById('bpTitle').textContent = data.theme_nom;
+    const validCount = updateBandeSummary(data);
+
+    const takenIds = new Set(data.membres.filter(m=>m.statut==='valide').map(m=>m.personnage_id));
+    const select = document.getElementById('bpPersonnageSelect');
+    select.innerHTML = '<option value="">Choisir un personnage…</option>' +
+      data.personnages.filter(p=>!takenIds.has(p.id)).map(p=>'<option value="'+p.id+'">'+p.nom+'</option>').join('');
+
+    const allTaken = validCount >= data.nb_personnes;
+    document.getElementById('bpJoinForm').style.display = allTaken ? 'none' : '';
+    if(allTaken){
+      document.getElementById('bpSuccess').style.display = '';
+      document.getElementById('bpSuccess').querySelector('h3').textContent = 'La bande est complète !';
+      document.getElementById('bpSuccessMsg').textContent = 'Tout le monde a choisi son personnage.';
+    }
+  }
+
+  async function handleRejoindre(){
+    const prenom = document.getElementById('bpPrenom').value.trim();
+    const personnageId = document.getElementById('bpPersonnageSelect').value;
+    const taille = document.getElementById('bpTailleSelect').value;
+    const errorEl = document.getElementById('bpError');
+    errorEl.style.display = 'none';
+
+    if(!prenom || !personnageId || !taille){
+      errorEl.textContent = 'Merci de remplir ton prénom, ton personnage et ta taille.';
+      errorEl.style.display = '';
+      return;
+    }
+
+    try{
+      const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/rejoindre', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ personnage_id: Number(personnageId), prenom, taille, quantite: 1 })
+      });
+      const resData = await res.json().catch(()=>({}));
+
+      const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
+      if(refreshed.ok){ currentBandeData = await refreshed.json(); updateBandeSummary(currentBandeData); }
+
+      if(!res.ok){
+        errorEl.textContent = resData.error === 'Ce personnage est déjà pris'
+          ? "Ce personnage vient d'être pris par quelqu'un d'autre — choisis-en un autre."
+          : "Une erreur est survenue, réessaie.";
+        errorEl.style.display = '';
+        if(currentBandeData) renderBandePage(currentBandeData);
+        return;
+      }
+
+      document.getElementById('bpJoinForm').style.display = 'none';
+      const successEl = document.getElementById('bpSuccess');
+      successEl.style.display = '';
+      successEl.querySelector('h3').textContent = 'Merci '+prenom+' !';
+      document.getElementById('bpSuccessMsg').textContent = 'Ta participation est enregistrée.';
+    }catch(err){
+      errorEl.textContent = "Impossible d'enregistrer ta participation pour le moment.";
+      errorEl.style.display = '';
+    }
   }
 
   /* ---------- group members ---------- */
@@ -1743,4 +1897,3 @@
 
 </body>
 </html>
-
