@@ -863,6 +863,15 @@
       <h3></h3>
       <p id="bpSuccessMsg" style="color:var(--bone-dim);"></p>
     </div>
+
+    <div id="bpOrder" class="mock-share" style="margin-top:24px;display:none;">
+      <div class="hdr"><span>Commande groupée</span><span id="bpOrderTotal"></span></div>
+      <div id="bpOrderLines"></div>
+      <div style="padding-top:16px;">
+        <button class="btn btn-primary" style="justify-content:center;width:100%;" id="bpOrderBtn" onclick="handleCommander()">Passer la commande</button>
+        <p id="bpOrderNote" style="color:var(--bone-dim);font-size:12px;margin-top:8px;text-align:center;">Le créateur de la bande règle la totalité pour l'instant.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1808,6 +1817,80 @@
       document.getElementById('bpSuccess').querySelector('h3').textContent = 'La bande est complète !';
       document.getElementById('bpSuccessMsg').textContent = 'Tout le monde a choisi son personnage.';
     }
+
+    renderOrderSection(data);
+  }
+
+  function renderOrderSection(data){
+    const orderEl = document.getElementById('bpOrder');
+    const validMembres = data.membres.filter(m=>m.statut==='valide');
+
+    if(validMembres.length === 0){
+      orderEl.style.display = 'none';
+      return;
+    }
+    orderEl.style.display = '';
+
+    const lines = validMembres.map(m=>{
+      const perso = data.personnages.find(p=>p.id===m.personnage_id);
+      const qte = m.quantite || 1;
+      const ligneTotal = (data.prix_unitaire * qte).toFixed(2);
+      return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
+        '<span>'+(perso ? perso.nom : 'Personnage')+' — '+m.prenom+' — taille '+m.taille+'</span><span>'+ligneTotal+' €</span></div>';
+    }).join('');
+    document.getElementById('bpOrderLines').innerHTML = lines;
+
+    const total = validMembres.reduce((sum,m)=> sum + data.prix_unitaire * (m.quantite||1), 0);
+    document.getElementById('bpOrderTotal').textContent = total.toFixed(2)+' €';
+
+    const btn = document.getElementById('bpOrderBtn');
+    const note = document.getElementById('bpOrderNote');
+    if(data.statut_commande === 'confirmee'){
+      btn.style.display = 'none';
+      note.textContent = '✅ Commande confirmée — le créateur a réglé la totalité.';
+    } else {
+      btn.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'Passer la commande';
+      note.textContent = "Le créateur de la bande règle la totalité pour l'instant.";
+    }
+  }
+
+  async function handleCommander(){
+    if(currentBandeData){
+      const validCount = currentBandeData.membres.filter(m=>m.statut==='valide').length;
+      const manquants = currentBandeData.nb_personnes - validCount;
+      if(manquants > 0){
+        const mot = manquants === 1 ? 'participant' : 'participants';
+        const ok = window.confirm(
+          'Il manque encore '+manquants+' '+mot+' — seuls les '+validCount+' costumes déjà validés seront commandés. Continuer ?'
+        );
+        if(!ok) return;
+      }
+    }
+
+    const btn = document.getElementById('bpOrderBtn');
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+    try{
+      const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/commander', { method: 'POST' });
+      const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
+      if(refreshed.ok){
+        currentBandeData = await refreshed.json();
+        renderOrderSection(currentBandeData);
+      }
+      if(!res.ok){
+        showToast('Impossible de passer la commande pour le moment');
+        btn.disabled = false;
+        btn.textContent = 'Passer la commande';
+      } else {
+        showToast('Commande confirmée !');
+      }
+    }catch(err){
+      showToast('Impossible de passer la commande pour le moment');
+      btn.disabled = false;
+      btn.textContent = 'Passer la commande';
+    }
   }
 
   async function handleRejoindre(){
@@ -1832,7 +1915,7 @@
       const resData = await res.json().catch(()=>({}));
 
       const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
-      if(refreshed.ok){ currentBandeData = await refreshed.json(); updateBandeSummary(currentBandeData); }
+      if(refreshed.ok){ currentBandeData = await refreshed.json(); updateBandeSummary(currentBandeData); renderOrderSection(currentBandeData); }
 
       if(!res.ok){
         errorEl.textContent = resData.error === 'Ce personnage est déjà pris'
