@@ -1679,39 +1679,59 @@
       + '<div class="form-row"><label>Code postal</label><input required id="ckZip" placeholder="67000"></div>'
       + '</div>'
       + '<button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">Valider la commande</button>'
-      + '<p style="font-size:12px;color:var(--bone-dim);margin-top:12px;">Démonstration : aucun paiement réel n\'est demandé ici. Un vrai site marchand nécessite un module de paiement (Stripe, PayPal…) branché à ce formulaire.</p>'
+      + '<p style="font-size:12px;color:var(--bone-dim);margin-top:12px;">Ta commande sera bien enregistrée, mais aucun paiement réel n\'est encore demandé ici — le module de paiement (Stripe) sera branché prochainement.</p>'
       + '</form>';
   }
   async function submitOrder(e){
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Vérification…';
+    submitBtn.textContent = 'Enregistrement…';
 
-    let result;
+    const orderPayload = {
+      nom: document.getElementById('ckName').value,
+      email: document.getElementById('ckEmail').value,
+      adresse: document.getElementById('ckAddr').value,
+      ville: document.getElementById('ckCity').value,
+      codePostal: document.getElementById('ckZip').value,
+      items: Object.values(cart).map(it => ({ id: it.id, taille: it.size || '', quantite: it.qty }))
+    };
+
+    let res, result;
     try{
-      result = await verifyCart();
+      res = await fetch('/api/commandes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
+      result = await res.json();
     }catch(err){
       showToast("Impossible de finaliser la commande pour le moment");
       submitBtn.disabled = false;
       submitBtn.textContent = 'Valider la commande';
       return;
     }
-    if(!result.valide){
-      showToast("Le panier a changé, merci de vérifier à nouveau");
-      openCheckout();
+
+    if(!res.ok || !result.valide){
+      if(result.erreurs){
+        showToast("Le panier a changé, merci de vérifier à nouveau");
+        openCheckout();
+      } else {
+        showToast("Impossible de finaliser la commande pour le moment");
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Valider la commande';
+      }
       return;
     }
 
-    const name = document.getElementById('ckName').value;
-    const orderNo = 'LC-' + Math.floor(100000+Math.random()*899999);
+    const name = orderPayload.nom;
     document.getElementById('checkoutTitle').textContent='Commande enregistrée';
     document.getElementById('checkoutBody').innerHTML =
       '<div class="confirm-box">'
       + '<div class="ok-icon">✓</div>'
       + '<h4>Merci, '+escapeHtml(name.split(' ')[0])+' !</h4>'
-      + '<p>Référence de démonstration : <strong>'+orderNo+'</strong></p>'
-      + '<p>Total vérifié : <strong>'+fmtPrice(result.total)+'</strong></p>'
+      + '<p>Référence de commande : <strong>'+escapeHtml(result.reference)+'</strong></p>'
+      + '<p>Total : <strong>'+fmtPrice(result.total)+'</strong></p>'
       + '<p>Un e-mail de confirmation partirait à cette adresse sur un site en production.</p>'
       + '</div>'
       + '<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;" onclick="closeAllOverlays()">Fermer</button>';
