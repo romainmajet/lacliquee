@@ -19,8 +19,8 @@ export async function onRequestPost(context) {
     });
   }
 
-  await env.DB.prepare('UPDATE bandes SET statut_commande = ? WHERE id = ?')
-    .bind('confirmee', bande.id).run();
+  await env.DB.prepare('UPDATE bandes SET statut_commande = ?, date_confirmation = ? WHERE id = ?')
+    .bind('confirmee', new Date().toISOString(), bande.id).run();
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
