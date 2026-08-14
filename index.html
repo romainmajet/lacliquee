@@ -983,7 +983,7 @@
 
 <script>
   /* ---------- state ---------- */
-  let cart = {}; // id -> {name, price, qty}
+  let cart = loadCartFromStorage(); // id -> {name, price, qty}
   let members = [
     {name:'Léa', size:'M'},
     {name:'Yanis', size:'L'},
@@ -1362,6 +1362,25 @@
       .replace(/'/g, '&#39;');
   }
 
+  function loadCartFromStorage(){
+    try{
+      const raw = localStorage.getItem('lacliquee_cart');
+      if(!raw) return {};
+      const parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    }catch(err){
+      return {};
+    }
+  }
+
+  function saveCartToStorage(){
+    try{
+      localStorage.setItem('lacliquee_cart', JSON.stringify(cart));
+    }catch(err){
+      // stockage indisponible (navigation privée, quota…) — le panier reste fonctionnel en mémoire pour cette session
+    }
+  }
+
   function fmtPrice(v){
     const n = Math.round(v*100)/100;
     return (Number.isInteger(n) ? n : n.toFixed(2).replace('.',',')) + ' €';
@@ -1583,6 +1602,7 @@
   function removeItem(key){ delete cart[key]; renderCart(); }
 
   function renderCart(){
+    saveCartToStorage();
     const itemsEl = document.getElementById('cartItems');
     const keys = Object.keys(cart);
     let total = 0;
