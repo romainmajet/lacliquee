@@ -1952,8 +1952,13 @@
       data.personnages.filter(p=>!takenIds.has(p.id)).map(p=>'<option value="'+p.id+'">'+escapeHtml(p.nom)+'</option>').join('');
 
     const allTaken = validCount >= data.nb_personnes;
-    document.getElementById('bpJoinForm').style.display = allTaken ? 'none' : '';
-    if(allTaken){
+    const commandePassee = data.statut_commande === 'confirmee';
+    document.getElementById('bpJoinForm').style.display = (allTaken || commandePassee) ? 'none' : '';
+    if(commandePassee){
+      document.getElementById('bpSuccess').style.display = '';
+      document.getElementById('bpSuccess').querySelector('h3').textContent = 'La commande a déjà été passée';
+      document.getElementById('bpSuccessMsg').textContent = 'Contacte le créateur de la bande si tu veux ajouter un costume.';
+    } else if(allTaken){
       document.getElementById('bpSuccess').style.display = '';
       document.getElementById('bpSuccess').querySelector('h3').textContent = 'La bande est complète !';
       document.getElementById('bpSuccessMsg').textContent = 'Tout le monde a choisi son personnage.';
@@ -2086,9 +2091,13 @@
       if(refreshed.ok){ currentBandeData = await refreshed.json(); updateBandeSummary(currentBandeData); renderOrderSection(currentBandeData); }
 
       if(!res.ok){
-        errorEl.textContent = resData.error === 'Ce personnage est déjà pris'
-          ? "Ce personnage vient d'être pris par quelqu'un d'autre — choisis-en un autre."
-          : "Une erreur est survenue, réessaie.";
+        if(resData.error === 'Ce personnage est déjà pris'){
+          errorEl.textContent = "Ce personnage vient d'être pris par quelqu'un d'autre — choisis-en un autre.";
+        } else if(resData.error){
+          errorEl.textContent = resData.error;
+        } else {
+          errorEl.textContent = "Une erreur est survenue, réessaie.";
+        }
         errorEl.style.display = '';
         if(currentBandeData) renderBandePage(currentBandeData);
         return;
