@@ -1352,6 +1352,16 @@
     renderRelated(product);
   }
 
+  function escapeHtml(str){
+    if(str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function fmtPrice(v){
     const n = Math.round(v*100)/100;
     return (Number.isInteger(n) ? n : n.toFixed(2).replace('.',',')) + ' €';
@@ -1738,7 +1748,7 @@
       const themes = await res.json();
       const select = document.getElementById('themeSelect');
       select.innerHTML = '<option value="">Choisir un thème…</option>' +
-        themes.map(t => '<option value="'+t.id+'">'+t.nom+' — '+t.nb_personnes+' pers.</option>').join('');
+        themes.map(t => '<option value="'+t.id+'">'+escapeHtml(t.nom)+' — '+t.nb_personnes+' pers.</option>').join('');
     }catch(err){
       showToast('Impossible de charger les thèmes pour le moment');
     }
@@ -1828,13 +1838,13 @@
       ? 'La bande est complète — '+validCount+'/'+data.nb_personnes+' places prises'
       : validCount+'/'+data.nb_personnes+' places prises';
     const list = document.getElementById('bpPersonnages');
-    list.innerHTML = '<div class="hdr"><span>État de la bande — '+data.theme_nom+'</span><span>'+validCount+'/'+data.nb_personnes+'</span></div>' +
+    list.innerHTML = '<div class="hdr"><span>État de la bande — '+escapeHtml(data.theme_nom)+'</span><span>'+validCount+'/'+data.nb_personnes+'</span></div>' +
       data.personnages.map(p=>{
         const membre = data.membres.find(m=>m.personnage_id===p.id && m.statut==='valide');
         const icon = membre ? '✅' : '⏳';
-        const status = membre ? (membre.prenom+' — taille '+membre.taille) : 'en attente';
+        const status = membre ? (escapeHtml(membre.prenom)+' — taille '+escapeHtml(membre.taille)) : 'en attente';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
-          '<span>'+icon+' '+p.nom+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+'</span></div>';
+          '<span>'+icon+' '+escapeHtml(p.nom)+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+'</span></div>';
       }).join('');
     return validCount;
   }
@@ -1847,7 +1857,7 @@
     const takenIds = new Set(data.membres.filter(m=>m.statut==='valide').map(m=>m.personnage_id));
     const select = document.getElementById('bpPersonnageSelect');
     select.innerHTML = '<option value="">Choisir un personnage…</option>' +
-      data.personnages.filter(p=>!takenIds.has(p.id)).map(p=>'<option value="'+p.id+'">'+p.nom+'</option>').join('');
+      data.personnages.filter(p=>!takenIds.has(p.id)).map(p=>'<option value="'+p.id+'">'+escapeHtml(p.nom)+'</option>').join('');
 
     const allTaken = validCount >= data.nb_personnes;
     document.getElementById('bpJoinForm').style.display = allTaken ? 'none' : '';
@@ -1901,7 +1911,7 @@
       const qte = m.quantite || 1;
       const ligneTotal = (data.prix_unitaire * qte).toFixed(2);
       return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
-        '<span>'+(perso ? perso.nom : 'Personnage')+' — '+m.prenom+' — taille '+m.taille+'</span><span>'+ligneTotal+' €</span></div>';
+        '<span>'+escapeHtml(perso ? perso.nom : 'Personnage')+' — '+escapeHtml(m.prenom)+' — taille '+escapeHtml(m.taille)+'</span><span>'+ligneTotal+' €</span></div>';
     }).join('');
     document.getElementById('bpOrderLines').innerHTML = lines;
 
