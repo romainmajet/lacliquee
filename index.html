@@ -810,9 +810,14 @@
           <li><strong>Partagez le lien</strong>Chaque ami renseigne sa taille depuis son téléphone.</li>
           <li><strong>Suivez ensemble</strong>Une seule page pour voir qui a validé et où en est la livraison.</li>
         </ol>
+        <div id="themeSelectRow" style="margin-bottom:14px;">
+          <select id="themeSelect" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
+            <option value="">Choisir un thème…</option>
+          </select>
+        </div>
         <div class="share-link-row">
-          <input type="text" id="shareLink" value="laclique.fr/g/nuit-rouge-4f2a" readonly>
-          <button onclick="copyShareLink()">Copier le lien</button>
+          <input type="text" id="shareLink" value="Choisissez un thème puis créez la bande" readonly>
+          <button onclick="handleCreateBande()">Créer la bande</button>
         </div>
       </div>
       <div class="mock-share">
@@ -1652,7 +1657,38 @@
     }
   }
 
-  /* ---------- share link ---------- */
+  /* ---------- group creation (real API) ---------- */
+  async function loadThemes(){
+    try{
+      const res = await fetch('/api/themes');
+      const themes = await res.json();
+      const select = document.getElementById('themeSelect');
+      select.innerHTML = '<option value="">Choisir un thème…</option>' +
+        themes.map(t => '<option value="'+t.id+'">'+t.nom+' — '+t.nb_personnes+' pers.</option>').join('');
+    }catch(err){
+      showToast('Impossible de charger les thèmes pour le moment');
+    }
+  }
+
+  async function handleCreateBande(){
+    const themeId = document.getElementById('themeSelect').value;
+    if(!themeId){ showToast('Choisissez un thème d\'abord'); return; }
+    try{
+      const res = await fetch('/api/bandes', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ theme_id: Number(themeId) })
+      });
+      if(!res.ok) throw new Error('creation failed');
+      const data = await res.json();
+      const link = window.location.origin + '/bande/' + data.code;
+      document.getElementById('shareLink').value = link;
+      showToast('Bande créée — lien prêt à partager');
+    }catch(err){
+      showToast('Erreur lors de la création de la bande');
+    }
+  }
+
   function copyShareLink(){
     const input = document.getElementById('shareLink');
     input.select(); input.setSelectionRange(0,99999);
@@ -1701,6 +1737,7 @@
   renderCart();
   renderMembers();
   initHomepagePhotos();
+  loadThemes();
   route();
 </script>
 
