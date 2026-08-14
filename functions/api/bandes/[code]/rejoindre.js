@@ -6,17 +6,24 @@ export async function onRequestPost(context) {
   if (!body || !body.personnage_id || !body.prenom || !body.taille) {
     return new Response(JSON.stringify({ error: 'Champs manquants' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
     });
   }
 
-  const bande = await env.DB.prepare('SELECT id FROM bandes WHERE code = ?')
+  const bande = await env.DB.prepare('SELECT id, statut_commande FROM bandes WHERE code = ?')
     .bind(code).first();
 
   if (!bande) {
     return new Response(JSON.stringify({ error: 'Bande introuvable' }), {
       status: 404,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    });
+  }
+
+  if (bande.statut_commande === 'confirmee') {
+    return new Response(JSON.stringify({ error: 'La commande a déjà été passée pour cette bande, contacte le créateur si tu veux ajouter un costume.' }), {
+      status: 409,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
     });
   }
 
@@ -27,7 +34,7 @@ export async function onRequestPost(context) {
   if (dejaPris) {
     return new Response(JSON.stringify({ error: 'Ce personnage est déjà pris' }), {
       status: 409,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
     });
   }
 
@@ -37,6 +44,6 @@ export async function onRequestPost(context) {
 
   return new Response(JSON.stringify({ success: true }), {
     status: 201,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
   });
 }
