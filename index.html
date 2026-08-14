@@ -1775,14 +1775,18 @@
 
   function updateBandeSummary(data){
     const validCount = data.membres.filter(m=>m.statut==='valide').length;
-    document.getElementById('bpSubtitle').textContent = validCount+'/'+data.nb_personnes+' places prises';
+    const complet = validCount >= data.nb_personnes;
+    document.getElementById('bpSubtitle').textContent = complet
+      ? 'La bande est complète — '+validCount+'/'+data.nb_personnes+' places prises'
+      : validCount+'/'+data.nb_personnes+' places prises';
     const list = document.getElementById('bpPersonnages');
-    list.innerHTML = '<div class="hdr"><span>'+data.theme_nom+'</span><span>'+validCount+'/'+data.nb_personnes+' pris</span></div>' +
+    list.innerHTML = '<div class="hdr"><span>État de la bande — '+data.theme_nom+'</span><span>'+validCount+'/'+data.nb_personnes+'</span></div>' +
       data.personnages.map(p=>{
         const membre = data.membres.find(m=>m.personnage_id===p.id && m.statut==='valide');
-        const status = membre ? (membre.prenom+' — '+membre.taille) : 'disponible';
-        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
-          '<span>'+p.nom+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+'</span></div>';
+        const icon = membre ? '✅' : '⏳';
+        const status = membre ? (membre.prenom+' — taille '+membre.taille) : 'en attente';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
+          '<span>'+icon+' '+p.nom+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+'</span></div>';
       }).join('');
     return validCount;
   }
