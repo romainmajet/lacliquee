@@ -463,6 +463,9 @@
   </div>
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-foot">
+    <div id="cartFreeShippingNudge" style="font-size:12px;color:var(--bone-dim);margin-bottom:8px;display:none;"></div>
+    <div class="cart-total-row" style="font-size:13px;color:var(--bone-dim);"><span>Sous-total</span><span id="cartSubtotal">0 €</span></div>
+    <div class="cart-total-row" style="font-size:13px;color:var(--bone-dim);"><span>Livraison</span><span id="cartShipping">0 €</span></div>
     <div class="cart-total-row"><span>Total</span><strong id="cartTotal">0 €</strong></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="openCheckout()">Commander</button>
   </div>
@@ -1617,6 +1620,12 @@
   }
   function removeItem(key){ delete cart[key]; renderCart(); }
 
+  const SHIPPING_FEE = 4.90;
+  const FREE_SHIPPING_THRESHOLD = 60;
+  function calculerLivraison(sousTotal){
+    return sousTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+  }
+
   function renderCart(){
     saveCartToStorage();
     const itemsEl = document.getElementById('cartItems');
@@ -1648,7 +1657,18 @@
           + '</div></div></div>';
       }).join('');
     }
-    document.getElementById('cartTotal').textContent = fmtPrice(total);
+    const shipping = calculerLivraison(total);
+    document.getElementById('cartSubtotal').textContent = fmtPrice(total);
+    document.getElementById('cartShipping').textContent = shipping === 0 ? 'Offerte' : fmtPrice(shipping);
+    document.getElementById('cartTotal').textContent = fmtPrice(total + shipping);
+    const nudgeEl = document.getElementById('cartFreeShippingNudge');
+    if(keys.length > 0 && shipping > 0){
+      const manque = FREE_SHIPPING_THRESHOLD - total;
+      nudgeEl.textContent = 'Plus que '+fmtPrice(manque)+' pour la livraison offerte';
+      nudgeEl.style.display = '';
+    } else {
+      nudgeEl.style.display = 'none';
+    }
     const count = keys.reduce((s,key)=>s+cart[key].qty,0);
     document.getElementById('cartBadge').textContent = count;
   }
@@ -1700,12 +1720,14 @@
     }
 
     lastVerifiedCheckout = result;
+    const shippingFee = calculerLivraison(result.total);
     const rowsHtml = result.lignes.map(l=>{
       const variantTxt = l.taille ? ' (taille '+escapeHtml(l.taille)+')' : '';
       return '<div class="row"><span>'+escapeHtml(l.nom)+variantTxt+' × '+l.quantite+'</span><span>'+fmtPrice(l.sousTotal)+'</span></div>';
     }).join('');
+    const shippingRow = '<div class="row"><span>Livraison</span><span>'+(shippingFee===0?'Offerte':fmtPrice(shippingFee))+'</span></div>';
     document.getElementById('checkoutBody').innerHTML =
-      '<div class="checkout-summary">'+rowsHtml+'<div class="row total"><span>Total</span><span>'+fmtPrice(result.total)+'</span></div></div>'
+      '<div class="checkout-summary">'+rowsHtml+shippingRow+'<div class="row total"><span>Total</span><span>'+fmtPrice(result.total+shippingFee)+'</span></div></div>'
       + '<form id="checkoutForm" onsubmit="submitOrder(event)">'
       + '<div class="form-row"><label>Nom complet</label><input required id="ckName" placeholder="Camille Martin"></div>'
       + '<div class="form-row"><label>Email</label><input required type="email" id="ckEmail" placeholder="vous@exemple.fr"></div>'
@@ -1761,13 +1783,14 @@
     }
 
     const name = orderPayload.nom;
+    const confirmShipping = calculerLivraison(result.total);
     document.getElementById('checkoutTitle').textContent='Commande enregistrée';
     document.getElementById('checkoutBody').innerHTML =
       '<div class="confirm-box">'
       + '<div class="ok-icon">✓</div>'
       + '<h4>Merci, '+escapeHtml(name.split(' ')[0])+' !</h4>'
       + '<p>Référence de commande : <strong>'+escapeHtml(result.reference)+'</strong></p>'
-      + '<p>Total : <strong>'+fmtPrice(result.total)+'</strong></p>'
+      + '<p>Total : <strong>'+fmtPrice(result.total+confirmShipping)+'</strong> (dont livraison '+(confirmShipping===0?'offerte':fmtPrice(confirmShipping))+')</p>'
       + '<p>Un e-mail de confirmation partirait à cette adresse sur un site en production.</p>'
       + '</div>'
       + '<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;" onclick="closeAllOverlays()">Fermer</button>';
