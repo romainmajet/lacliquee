@@ -1961,20 +1961,39 @@
     }
   }
 
+  function getMonMembre(code){
+    try{
+      const raw = localStorage.getItem('lc_membre_'+code);
+      return raw ? JSON.parse(raw) : null;
+    }catch(err){ return null; }
+  }
+  function saveMonMembre(code, membreId, token){
+    try{ localStorage.setItem('lc_membre_'+code, JSON.stringify({membre_id: membreId, token})); }catch(err){}
+  }
+  function oublierMonMembre(code){
+    try{ localStorage.removeItem('lc_membre_'+code); }catch(err){}
+  }
+
   function updateBandeSummary(data){
     const validCount = data.membres.filter(m=>m.statut==='valide').length;
     const complet = validCount >= data.nb_personnes;
     document.getElementById('bpSubtitle').textContent = complet
       ? 'La bande est complète — '+validCount+'/'+data.nb_personnes+' places prises'
       : validCount+'/'+data.nb_personnes+' places prises';
+    const mon = getMonMembre(currentBandeCode);
+    const commandePassee = data.statut_commande === 'confirmee';
     const list = document.getElementById('bpPersonnages');
     list.innerHTML = '<div class="hdr"><span>État de la bande — '+escapeHtml(data.theme_nom)+'</span><span>'+validCount+'/'+data.nb_personnes+'</span></div>' +
       data.personnages.map(p=>{
         const membre = data.membres.find(m=>m.personnage_id===p.id && m.statut==='valide');
         const icon = membre ? '✅' : '⏳';
         const status = membre ? (escapeHtml(membre.prenom)+' — taille '+escapeHtml(membre.taille)) : 'en attente';
+        const estMoi = membre && mon && membre.id === mon.membre_id;
+        const actions = (estMoi && !commandePassee)
+          ? '<span style="margin-left:10px;"><a href="#" onclick="ouvrirEditionMembre('+membre.id+');return false;" style="color:var(--gold);text-decoration:underline;font-size:12px;">modifier</a> · <a href="#" onclick="quitterBande('+membre.id+');return false;" style="color:var(--oxblood-light);text-decoration:underline;font-size:12px;">quitter</a></span>'
+          : '';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">'+
-          '<span>'+icon+' '+escapeHtml(p.nom)+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+'</span></div>';
+          '<span>'+icon+' '+escapeHtml(p.nom)+'</span><span style="color:'+(membre?'var(--gold)':'var(--bone-dim)')+';">'+status+actions+'</span></div>';
       }).join('');
     return validCount;
   }
@@ -2156,6 +2175,7 @@
         body: JSON.stringify({ personnage_id: Number(personnageId), prenom, taille, quantite: 1 })
       });
       const resData = await res.json().catch(()=>({}));
+      if(res.ok && resData.membre_id && resData.token){ saveMonMembre(currentBandeCode, resData.membre_id, resData.token); }
 
       const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
       if(refreshed.ok){ currentBandeData = await refreshed.json(); updateBandeSummary(currentBandeData); renderOrderSection(currentBandeData); }
@@ -2181,6 +2201,95 @@
     }catch(err){
       errorEl.textContent = "Impossible d'enregistrer ta participation pour le moment.";
       errorEl.style.display = '';
+    }
+  }
+
+  function ouvrirEditionMembre(membreId){
+    const mon = getMonMembre(currentBandeCode);
+    if(!mon || mon.membre_id !== membreId || !currentBandeData) return;
+    const membre = currentBandeData.membres.find(m=>m.id===membreId);
+    if(!membre) return;
+
+    const takenIds = new Set(currentBandeData.membres.filter(m=>m.statut==='valide' && m.id!==membreId).map(m=>m.personnage_id));
+    const optionsPersos = currentBandeData.personnages.filter(p=>!takenIds.has(p.id))
+      .map(p=>'<option value="'+p.id+'"'+(p.id===membre.personnage_id?' selected':'')+'>'+escapeHtml(p.nom)+'</option>').join('');
+    const tailles = ['XS','S','M','L','XL','XXL'];
+    const optionsTailles = tailles.map(t=>'<option value="'+t+'"'+(t===membre.taille?' selected':'')+'>'+t+'</option>').join('');
+
+    const formHtml =
+      '<div id="bpEditForm" style="margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:10px;">'
+      + '<div class="form-row"><label>Personnage</label><select id="bpEditPersonnage">'+optionsPersos+'</select></div>'
+      + '<div class="form-row"><label>Taille</label><select id="bpEditTaille">'+optionsTailles+'</select></div>'
+      + '<div id="bpEditError" style="color:var(--oxblood-light);font-size:12px;display:none;margin:4px 0;"></div>'
+      + '<div style="display:flex;gap:8px;margin-top:6px;">'
+      + '<button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="validerEditionMembre('+membreId+')">Enregistrer</button>'
+      + '<button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="renderBandePage(currentBandeData)">Annuler</button>'
+      + '</div></div>';
+
+    const list = document.getElementById('bpPersonnages');
+    const existing = document.getElementById('bpEditForm');
+    if(existing) existing.remove();
+    list.insertAdjacentHTML('beforeend', formHtml);
+  }
+
+  async function validerEditionMembre(membreId){
+    const mon = getMonMembre(currentBandeCode);
+    if(!mon || mon.membre_id !== membreId) return;
+    const personnageId = document.getElementById('bpEditPersonnage').value;
+    const taille = document.getElementById('bpEditTaille').value;
+    const errorEl = document.getElementById('bpEditError');
+    errorEl.style.display = 'none';
+
+    try{
+      const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/membres/'+membreId, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token: mon.token, personnage_id: Number(personnageId), taille })
+      });
+      const resData = await res.json().catch(()=>({}));
+      if(!res.ok){
+        errorEl.textContent = resData.error || 'Impossible de mettre à jour ta participation.';
+        errorEl.style.display = '';
+        return;
+      }
+      showToast('Ta participation a été mise à jour');
+      const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
+      if(refreshed.ok){
+        currentBandeData = await refreshed.json();
+        renderBandePage(currentBandeData);
+      }
+    }catch(err){
+      errorEl.textContent = 'Impossible de mettre à jour ta participation.';
+      errorEl.style.display = '';
+    }
+  }
+
+  async function quitterBande(membreId){
+    const mon = getMonMembre(currentBandeCode);
+    if(!mon || mon.membre_id !== membreId) return;
+    const ok = window.confirm('Quitter la bande ? Ton personnage redeviendra disponible pour quelqu\'un d\'autre.');
+    if(!ok) return;
+
+    try{
+      const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/membres/'+membreId, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token: mon.token })
+      });
+      if(res.ok){
+        oublierMonMembre(currentBandeCode);
+        showToast('Tu as quitté la bande');
+        const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
+        if(refreshed.ok){
+          currentBandeData = await refreshed.json();
+          renderBandePage(currentBandeData);
+        }
+      } else {
+        const resData = await res.json().catch(()=>({}));
+        showToast(resData.error || 'Impossible de quitter la bande pour le moment');
+      }
+    }catch(err){
+      showToast('Impossible de quitter la bande pour le moment');
     }
   }
 
