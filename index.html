@@ -1591,14 +1591,19 @@
   }
 
   function addToCart(btn){
-    // quick-add from the homepage grid: uses the first available size/color by default
+    // grille produits : si une taille (ou un coloris) doit être choisie, on ouvre la fiche produit
+    // plutôt que d'imposer un choix par défaut au client
     const card = btn.closest('.product-card');
     const id = card.dataset.id;
     const product = PRODUCTS[id];
     if(!product){ return; }
-    const size = product.sizes ? product.sizes[0] : null;
-    const color = product.colors ? product.colors[0].name : null;
-    addToCartVariant(id, 1, size, color);
+
+    if(product.sizes || product.colors){
+      openProduct(id, true);
+      return;
+    }
+
+    addToCartVariant(id, 1, null, null);
     const original = btn.textContent;
     btn.textContent='Ajouté ✓'; btn.classList.add('added');
     showToast(product.name + ' ajouté au panier');
