@@ -953,6 +953,19 @@
   </div>
 </section>
 
+<div id="cookieBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--bg-alt);border-top:1px solid var(--line);padding:16px 20px;">
+  <div style="max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
+    <p style="font-size:13px;color:var(--bone-dim);margin:0;flex:1;min-width:240px;">
+      Ce site utilise des cookies techniques nécessaires à son fonctionnement (panier) et, si vous l'acceptez, des cookies de mesure d'audience et publicitaires.
+      <button onclick="openInfo('confidentialite')" style="background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;padding:0;font-size:13px;">En savoir plus</button>
+    </p>
+    <div style="display:flex;gap:10px;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="repondreCookies(false)">Refuser</button>
+      <button class="btn btn-primary" onclick="repondreCookies(true)">Accepter</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="wrap">
     <div class="foot-grid">
@@ -983,6 +996,7 @@
         <ul>
           <li><button onclick="openInfo('histoire')">Notre histoire</button></li>
           <li><button onclick="openContact()">Contact</button></li>
+          <li><button onclick="openInfo('mentions_legales')">Mentions légales</button></li>
           <li><button onclick="openInfo('cgv')">CGV</button></li>
           <li><button onclick="openInfo('confidentialite')">Confidentialité</button></li>
         </ul>
@@ -1805,6 +1819,16 @@
         '<p>La Clique est née d\'un constat simple : chaque Halloween, organiser un déguisement en duo ou en bande finissait toujours par le même casse-tête — un site pensé pour une seule personne, des tailles à commander séparément sans savoir si tout arriverait à temps, et un thème que personne n\'avait vraiment coordonné.</p>'
         + '<p>On a construit La Clique autour de l\'idée inverse : partir du groupe. Un thème, un lien à partager, chacun renseigne sa taille de son côté, et tout le monde reçoit son costume avant le 31 octobre. Le guide des tailles en centimètres et le suivi des retours article par article sont nés des mêmes irritants qu\'on a nous-mêmes vécus en organisant nos soirées.</p>'
     },
+    mentions_legales: {
+      title: 'Mentions légales',
+      body:
+        '<div class="info-note">⚠️ Page à finaliser dès l\'obtention du numéro SIRET — remplacer chaque [À COMPLÉTER] par les informations réelles avant toute vente effective.</div>'
+        + '<h4>Éditeur du site</h4><p>[À COMPLÉTER — Nom et prénom ou raison sociale]<br>[À COMPLÉTER — Statut juridique, ex : entreprise individuelle / auto-entrepreneur]<br>Numéro SIRET : [À COMPLÉTER]<br>Adresse du siège : [À COMPLÉTER]<br>Contact : [À COMPLÉTER — e-mail]</p>'
+        + '<h4>Directeur de la publication</h4><p>[À COMPLÉTER — Nom et prénom]</p>'
+        + '<h4>Hébergement</h4><p>Ce site est hébergé par Cloudflare, Inc.<br>101 Townsend St, San Francisco, CA 94107, États-Unis<br><a href="https://www.cloudflare.com" target="_blank" rel="noopener">www.cloudflare.com</a></p>'
+        + '<h4>Propriété intellectuelle</h4><p>L\'ensemble des contenus présents sur ce site (textes, visuels, logo) est protégé au titre du droit d\'auteur. Toute reproduction sans autorisation préalable est interdite.</p>'
+        + '<h4>Médiation de la consommation</h4><p>Conformément à l\'article L.616-1 du Code de la consommation, tout consommateur a le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d\'un litige. [À COMPLÉTER — nom et coordonnées du médiateur choisi une fois l\'entreprise enregistrée]</p>'
+    },
     cgv: {
       title: 'Conditions générales de vente',
       body:
@@ -2330,11 +2354,28 @@
     });
   }
 
+  /* ---------- cookie consent ---------- */
+  function getCookieConsent(){
+    try{ return localStorage.getItem('lc_cookie_consent'); }catch(err){ return null; }
+  }
+  function repondreCookies(accepte){
+    try{ localStorage.setItem('lc_cookie_consent', accepte ? 'accepte' : 'refuse'); }catch(err){}
+    document.getElementById('cookieBanner').style.display = 'none';
+    // Point d'accroche pour les futurs scripts de mesure/publicité (ex: pixel TikTok) :
+    // n'appeler leur chargement qu'après avoir vérifié getCookieConsent() === 'accepte'.
+  }
+  function initCookieBanner(){
+    if(!getCookieConsent()){
+      document.getElementById('cookieBanner').style.display = '';
+    }
+  }
+
   /* ---------- init ---------- */
   renderCart();
   renderMembers();
   initHomepagePhotos();
   loadThemes();
+  initCookieBanner();
   route();
 </script>
 
