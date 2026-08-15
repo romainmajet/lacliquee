@@ -56,3 +56,44 @@ export async function envoyerEmailConfirmation(env, { to, prenom, reference, tot
     return { envoye: false, raison: 'erreur réseau' };
   }
 }
+
+export async function envoyerEmailContact(env, { name, email, message }) {
+  if (!env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY manquante — email non envoyé');
+    return { envoye: false, raison: 'clé API manquante' };
+  }
+  const destinataire = env.CONTACT_EMAIL || 'commandes@lacliquee.com';
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + env.RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: EXPEDITEUR,
+        to: [destinataire],
+        reply_to: email,
+        subject: 'Nouveau message de contact — ' + name,
+        html: '<div style="font-family:Georgia,serif;padding:16px;">'
+          + '<p><strong>Nom :</strong> ' + name + '</p>'
+          + '<p><strong>E-mail :</strong> ' + email + '</p>'
+          + '<p><strong>Message :</strong></p>'
+          + '<p>' + message.replace(/\n/g, '<br>') + '</p>'
+          + '</div>'
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error('Échec envoi email contact Resend:', res.status, errText);
+      return { envoye: false, raison: 'erreur API Resend' };
+    }
+
+    return { envoye: true };
+  } catch (err) {
+    console.error('Erreur envoi email contact:', err);
+    return { envoye: false, raison: 'erreur réseau' };
+  }
+}
