@@ -1,3 +1,5 @@
+import { envoyerEmailConfirmation } from '../../../_lib/email.js';
+
 function genererReference() {
   return 'LC-' + Math.floor(100000 + Math.random() * 899999);
 }
@@ -108,6 +110,11 @@ export async function onRequestPost(context) {
   await env.DB.prepare(
     'UPDATE bandes SET statut_commande = ?, date_confirmation = ?, commande_id = ? WHERE id = ?'
   ).bind('confirmee', new Date().toISOString(), commandeId, bande.id).run();
+
+  const resultatEmail = await envoyerEmailConfirmation(env, { to: email, prenom: nom, reference, total, lignes });
+  if (!resultatEmail.envoye) {
+    console.error('Email de confirmation non envoyé:', resultatEmail.raison);
+  }
 
   return new Response(JSON.stringify({
     success: true,
