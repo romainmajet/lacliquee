@@ -390,7 +390,7 @@
   </div>
   <p style="font-size:13.5px;color:var(--bone-dim);">Mesurez-vous par-dessus un vêtement fin, mètre à ruban à plat, pour choisir la taille la plus proche.</p>
   <table class="size-table">
-    <thead><tr><th>Taille</th><th>Poitrine (cm)</th><th>Taille (cm)</th><th>Hauteur conseillée</th></tr></thead>
+    <thead><tr><th>Taille</th><th>Poitrine (cm)</th><th>Tour de taille (cm)</th><th>Hauteur conseillée</th></tr></thead>
     <tbody>
       <tr><td>S</td><td>84–90</td><td>68–74</td><td>155–165 cm</td></tr>
       <tr><td>M</td><td>91–97</td><td>75–81</td><td>165–172 cm</td></tr>
@@ -427,8 +427,7 @@
   </div>
   <div id="contactFormWrap">
     <p style="font-size:13.5px;color:var(--bone-dim);margin-bottom:18px;">Une question sur une commande, une taille, un délai ? Écrivez-nous, on répond sous 24h ouvrées.</p>
-    <form id='contactForm' method='POST' name='contact' onsubmit='submitContact(event)'>
-      <input type="hidden" name="form-name" value="contact">
+    <form id='contactForm' onsubmit='submitContact(event)'>
       <p class="hp-field"><label>Ne pas remplir : <input name="bot-field"></label></p>
       <div class="form-row">
         <label for="contactName">Nom</label>
@@ -1880,7 +1879,7 @@
     const btn = form.querySelector('button[type=submit]');
     btn.disabled = true; btn.textContent = 'Envoi…';
     try{
-      const res = await fetch('/', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: new URLSearchParams(new FormData(form)).toString()
