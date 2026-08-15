@@ -1,3 +1,9 @@
+function genererToken() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function onRequestPost(context) {
   const { env, params, request } = context;
   const code = params.code;
@@ -38,11 +44,13 @@ export async function onRequestPost(context) {
     });
   }
 
-  await env.DB.prepare(
-    'INSERT INTO membres_bande (bande_id, personnage_id, prenom, taille, quantite, statut) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(bande.id, body.personnage_id, body.prenom, body.taille, body.quantite || 1, 'valide').run();
+  const token = genererToken();
 
-  return new Response(JSON.stringify({ success: true }), {
+  const inserted = await env.DB.prepare(
+    'INSERT INTO membres_bande (bande_id, personnage_id, prenom, taille, quantite, statut, token) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id'
+  ).bind(bande.id, body.personnage_id, body.prenom, body.taille, body.quantite || 1, 'valide', token).first();
+
+  return new Response(JSON.stringify({ success: true, membre_id: inserted.id, token }), {
     status: 201,
     headers: { 'Content-Type': 'application/json; charset=utf-8' }
   });
