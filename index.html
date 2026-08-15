@@ -868,8 +868,19 @@
       <div class="hdr"><span>Commande groupée</span><span id="bpOrderTotal"></span></div>
       <div id="bpOrderLines"></div>
       <div style="padding-top:16px;">
-        <button class="btn btn-primary" style="justify-content:center;width:100%;" id="bpOrderBtn" onclick="handleCommander()">Passer la commande</button>
+        <button class="btn btn-primary" style="justify-content:center;width:100%;" id="bpOrderBtn" onclick="showCommandeForm()">Passer la commande</button>
         <p id="bpOrderNote" style="color:var(--bone-dim);font-size:12px;margin-top:8px;text-align:center;">Le créateur de la bande règle la totalité pour l'instant.</p>
+      </div>
+      <div id="bpOrderForm" style="display:none;padding-top:12px;">
+        <div class="form-row"><label>Nom complet</label><input id="boName" placeholder="Camille Martin"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="boEmail" placeholder="vous@exemple.fr"></div>
+        <div class="form-row"><label>Adresse</label><input id="boAddr" placeholder="12 rue des Fées"></div>
+        <div class="form-two">
+          <div class="form-row"><label>Ville</label><input id="boCity" placeholder="Strasbourg"></div>
+          <div class="form-row"><label>Code postal</label><input id="boZip" placeholder="67000"></div>
+        </div>
+        <div id="bpOrderFormError" style="color:var(--oxblood-light);font-size:13px;display:none;margin:4px 0;"></div>
+        <button class="btn btn-primary" style="justify-content:center;width:100%;margin-top:6px;" id="bpOrderConfirmBtn" onclick="confirmerCommandeBande()">Confirmer la commande</button>
       </div>
     </div>
 
@@ -2017,18 +2028,23 @@
 
     const btn = document.getElementById('bpOrderBtn');
     const note = document.getElementById('bpOrderNote');
+    const form = document.getElementById('bpOrderForm');
     if(data.statut_commande === 'confirmee'){
       btn.style.display = 'none';
+      note.style.display = '';
       note.textContent = '✅ Commande confirmée — le créateur a réglé la totalité.';
+      form.style.display = 'none';
     } else {
       btn.style.display = '';
       btn.disabled = false;
       btn.textContent = 'Passer la commande';
+      note.style.display = '';
       note.textContent = "Le créateur de la bande règle la totalité pour l'instant.";
+      form.style.display = 'none';
     }
   }
 
-  async function handleCommander(){
+  function showCommandeForm(){
     if(currentBandeData){
       const validCount = currentBandeData.membres.filter(m=>m.statut==='valide').length;
       const manquants = currentBandeData.nb_personnes - validCount;
@@ -2040,12 +2056,37 @@
         if(!ok) return;
       }
     }
+    document.getElementById('bpOrderBtn').style.display = 'none';
+    document.getElementById('bpOrderNote').style.display = 'none';
+    document.getElementById('bpOrderForm').style.display = '';
+  }
 
-    const btn = document.getElementById('bpOrderBtn');
+  async function confirmerCommandeBande(){
+    const nom = document.getElementById('boName').value.trim();
+    const email = document.getElementById('boEmail').value.trim();
+    const adresse = document.getElementById('boAddr').value.trim();
+    const ville = document.getElementById('boCity').value.trim();
+    const codePostal = document.getElementById('boZip').value.trim();
+    const errorEl = document.getElementById('bpOrderFormError');
+    errorEl.style.display = 'none';
+
+    if(!nom || !email || !adresse || !ville || !codePostal){
+      errorEl.textContent = 'Merci de remplir toutes les coordonnées pour la livraison.';
+      errorEl.style.display = '';
+      return;
+    }
+
+    const btn = document.getElementById('bpOrderConfirmBtn');
     btn.disabled = true;
     btn.textContent = 'Envoi…';
+
     try{
-      const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/commander', { method: 'POST' });
+      const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/commander', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ nom, email, adresse, ville, codePostal })
+      });
+      const resData = await res.json().catch(()=>({}));
       const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
       if(refreshed.ok){
         currentBandeData = await refreshed.json();
@@ -2053,16 +2094,18 @@
         renderTrackingSection(currentBandeData);
       }
       if(!res.ok){
-        showToast('Impossible de passer la commande pour le moment');
+        errorEl.textContent = resData.error || 'Impossible de passer la commande pour le moment.';
+        errorEl.style.display = '';
         btn.disabled = false;
-        btn.textContent = 'Passer la commande';
+        btn.textContent = 'Confirmer la commande';
       } else {
-        showToast('Commande confirmée !');
+        showToast('Commande confirmée — référence '+resData.reference);
       }
     }catch(err){
-      showToast('Impossible de passer la commande pour le moment');
+      errorEl.textContent = 'Impossible de passer la commande pour le moment.';
+      errorEl.style.display = '';
       btn.disabled = false;
-      btn.textContent = 'Passer la commande';
+      btn.textContent = 'Confirmer la commande';
     }
   }
 
