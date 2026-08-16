@@ -93,6 +93,7 @@ export async function onRequestPost(context) {
   if (event.type === 'checkout.session.expired') {
     const session = event.data.object;
     const commandeId = session.metadata && session.metadata.commande_id;
+    const bandeId = session.metadata && session.metadata.bande_id;
     if (!commandeId) return new Response('ok', { status: 200 });
 
     const commande = await env.DB.prepare(
@@ -112,10 +113,20 @@ export async function onRequestPost(context) {
       env.DB.prepare('UPDATE commandes SET statut = ? WHERE id = ?').bind('expiree', commandeId)
     ];
     for (const l of (lignes.results || [])) {
+      if (!l.produit_id) continue; // lignes de commande de bande : rien à restocker
       statements.push(
         env.DB.prepare(
           'UPDATE stocks SET quantite = quantite + ? WHERE produit_id = ? AND taille = ?'
         ).bind(l.quantite, l.produit_id, l.taille || '')
+      );
+    }
+    // Le paiement d'une bande a expiré sans être réglé : on la déverrouille pour que
+    // le créateur puisse relancer le paiement au lieu de rester bloqué pour toujours.
+    if (bandeId) {
+      statements.push(
+        env.DB.prepare(
+          "UPDATE bandes SET statut_commande = NULL, commande_id = NULL WHERE id = ? AND statut_commande = 'confirmee'"
+        ).bind(bandeId)
       );
     }
     await env.DB.batch(statements);
