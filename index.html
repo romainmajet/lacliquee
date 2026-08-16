@@ -1632,6 +1632,13 @@
   }
   function changeQty(key, delta){
     if(!cart[key]) return;
+    if(delta > 0){
+      const product = PRODUCTS[cart[key].id];
+      if(product && typeof product.stock === 'number' && cart[key].qty >= product.stock){
+        showToast('Stock limité à ' + product.stock + ' exemplaires pour cet article');
+        return;
+      }
+    }
     cart[key].qty += delta;
     if(cart[key].qty<=0) delete cart[key];
     renderCart();
