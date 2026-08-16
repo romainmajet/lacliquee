@@ -135,8 +135,9 @@
   @media(min-width:720px){.cat-grid{grid-template-columns:repeat(4,1fr);}}
   .cat-card{background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:22px 18px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;transition:border-color .15s,transform .15s;cursor:pointer;text-align:left;color:var(--bone);}
   .cat-card:hover{border-color:var(--gold);transform:translateY(-3px);}
-  .cat-card .n{font-size:12px;color:var(--bone-dim);}
-  .cat-card h3{font-size:19px;margin-top:auto;}
+  .cat-card .ic{width:38px;height:38px;border-radius:10px;background:rgba(182,144,92,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:13px;font-weight:700;letter-spacing:-0.02em;}
+  .cat-card .n{font-size:12px;color:var(--bone-dim);margin-top:16px;}
+  .cat-card h3{font-size:19px;margin-top:6px;}
 
   .product-grid{display:grid;grid-template-columns:1fr;gap:20px;}
   @media(min-width:700px){.product-grid{grid-template-columns:repeat(3,1fr);}}
@@ -775,10 +776,10 @@
       <h2>Par combien vous êtes</h2>
     </div>
     <div class="cat-grid">
-      <button class="cat-card" onclick="showCategory('duo')"><div class="n">à deux</div><h3>Duos</h3></button>
-      <button class="cat-card" onclick="goToHomeSection('groupes')"><div class="n">3 à 8 personnes</div><h3>Groupes</h3></button>
-      <button class="cat-card" onclick="showCategory('homme')"><div class="n">tenue seule</div><h3>Solo</h3></button>
-      <button class="cat-card" onclick="showCategory('accessoire')"><div class="n">maquillage, lentilles</div><h3>Accessoires</h3></button>
+      <button class="cat-card" onclick="showCategory('duo')"><div class="ic">×2</div><div><div class="n">à deux</div><h3>Duos</h3></div></button>
+      <button class="cat-card" onclick="goToHomeSection('groupes')"><div class="ic">4+</div><div><div class="n">3 à 8 personnes</div><h3>Groupes</h3></div></button>
+      <button class="cat-card" onclick="showCategory('homme')"><div class="ic">×1</div><div><div class="n">tenue seule</div><h3>Solo</h3></div></button>
+      <button class="cat-card" onclick="showCategory('accessoire')"><div class="ic">✦</div><div><div class="n">maquillage, lentilles</div><h3>Accessoires</h3></div></button>
     </div>
   </div>
 </section>
