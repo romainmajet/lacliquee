@@ -883,7 +883,7 @@
         <div class="form-row"><label>Adresse</label><input id="boAddr" placeholder="12 rue des Fées"></div>
         <div class="form-two">
           <div class="form-row"><label>Ville</label><input id="boCity" placeholder="Strasbourg"></div>
-          <div class="form-row"><label>Code postal</label><input id="boZip" placeholder="67000"></div>
+          <div class="form-row"><label>Code postal</label><input required id="boZip" placeholder="67000" pattern="[0-9]{5}" maxlength="5" inputmode="numeric" title="5 chiffres, ex : 67000"></div>
         </div>
         <div id="bpOrderFormError" style="color:var(--oxblood-light);font-size:13px;display:none;margin:4px 0;"></div>
         <button class="btn btn-primary" style="justify-content:center;width:100%;margin-top:6px;" id="bpOrderConfirmBtn" onclick="confirmerCommandeBande()">Confirmer la commande</button>
@@ -1288,7 +1288,7 @@
   function galleryItemHtml(product, idx, isThumb){
     if(product.images && product.images.length){
       const src = product.images[idx];
-      return '<img src="'+src+'" alt="'+product.name+' photo '+(idx+1)+'">';
+      return '<img src="'+src+'" alt="'+escapeHtml(product.name)+' photo '+(idx+1)+'">';
     }
     const figs = product.figs || ['var(--bone-dim)'];
     const svgs = figs.map(c=>'<svg viewBox="0 0 40 78" fill="'+c+'"><use href="#fig"/></svg>').join('');
@@ -1312,7 +1312,7 @@
     if(itemCount > 1){
       thumbsEl.style.display='flex';
       thumbsEl.innerHTML = product.images.map((img,i)=>
-        '<button class="gallery-thumb'+(i===0?' active':'')+'" onclick="setGalleryIndex('+i+')"><img src="'+img+'"></button>'
+        '<button class="gallery-thumb'+(i===0?' active':'')+'" onclick="setGalleryIndex('+i+')"><img src="'+img+'" alt="'+escapeHtml(product.name)+' — photo '+(i+1)+'"></button>'
       ).join('');
     } else {
       thumbsEl.style.display='none'; thumbsEl.innerHTML='';
@@ -1489,7 +1489,11 @@
   function renderLightbox(){
     const item = lightboxItems[lightboxIndex];
     const el = document.getElementById('lightboxContent');
-    if(item.type==='img'){ el.innerHTML = '<img src="'+item.src+'">'; }
+    if(item.type==='img'){
+      const prod = PRODUCTS[currentProductSlug];
+      const altTxt = prod ? escapeHtml(prod.name)+' — vue agrandie' : 'Photo agrandie du produit';
+      el.innerHTML = '<img src="'+item.src+'" alt="'+altTxt+'">';
+    }
     else { el.innerHTML = '<div class="fig-wrap">'+item.figs.map(c=>'<svg viewBox="0 0 40 78" fill="'+c+'"><use href="#fig"/></svg>').join('')+'</div>'; }
     document.querySelectorAll('.lightbox-nav').forEach(b=> b.style.display = lightboxItems.length>1 ? '' : 'none');
   }
@@ -1745,7 +1749,7 @@
       + '<div class="form-row"><label>Adresse</label><input required id="ckAddr" placeholder="12 rue des Fées"></div>'
       + '<div class="form-two">'
       + '<div class="form-row"><label>Ville</label><input required id="ckCity" placeholder="Strasbourg"></div>'
-      + '<div class="form-row"><label>Code postal</label><input required id="ckZip" placeholder="67000"></div>'
+      + '<div class="form-row"><label>Code postal</label><input required id="ckZip" placeholder="67000" pattern="[0-9]{5}" maxlength="5" inputmode="numeric" title="5 chiffres, ex : 67000"></div>'
       + '</div>'
       + '<button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">Valider la commande</button>'
       + '<p style="font-size:12px;color:var(--bone-dim);margin-top:12px;">Ta commande sera bien enregistrée, mais aucun paiement réel n\'est encore demandé ici — le module de paiement (Stripe) sera branché prochainement.</p>'
