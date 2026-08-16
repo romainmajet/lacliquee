@@ -823,9 +823,12 @@
         </div>
       </div>
       <div class="mock-share">
-        <div class="hdr"><span>Escouade Nuit Rouge</span><span id="memberCountLabel">4 places</span></div>
-        <div id="memberList"></div>
-        <button class="add-member-btn" onclick="addMember()">+ Ajouter un ami</button>
+        <div class="hdr"><span>Escouade Nuit Rouge</span><span>Exemple</span></div>
+        <div class="mock-row"><span>Camille</span><span class="status ok">Taille M</span></div>
+        <div class="mock-row"><span>Karim</span><span class="status ok">Taille L</span></div>
+        <div class="mock-row"><span>Alice</span><span class="status wait">En attente</span></div>
+        <div class="mock-row"><span>Noa</span><span class="status wait">En attente</span></div>
+        <p style="font-size:12px;color:var(--bone-dim);margin-top:10px;">Voici à quoi ressemblera votre bande une fois le lien partagé — chaque ami choisira son propre nom et sa taille en cliquant sur le lien.</p>
       </div>
     </div>
   </div>
@@ -1011,12 +1014,6 @@
 <script>
   /* ---------- state ---------- */
   let cart = loadCartFromStorage(); // id -> {name, price, qty}
-  let members = [
-    {name:'Léa', size:'M'},
-    {name:'Yanis', size:'L'},
-    {name:'Inès', size:''},
-    {name:'Tom', size:''}
-  ];
 
 
   /* ================= PRODUCT CATALOG ================= */
@@ -2316,31 +2313,7 @@
     }
   }
 
-  /* ---------- group members ---------- */
-  function renderMembers(){
-    const list = document.getElementById('memberList');
-    list.innerHTML = members.map((m,i)=>{
-      const status = m.size ? '<span class="status ok">Taille '+m.size+'</span>' : '<span class="status wait">En attente</span>';
-      return '<div class="mock-row">'
-        + '<input type="text" value="'+m.name+'" onchange="updateMemberName('+i+',this.value)">'
-        + '<select onchange="updateMemberSize('+i+',this.value)">'
-        + '<option value=""'+(m.size===''?' selected':'')+'>Taille…</option>'
-        + ['S','M','L','XL'].map(s=>'<option value="'+s+'"'+(m.size===s?' selected':'')+'>'+s+'</option>').join('')
-        + '</select>'
-        + status
-        + '<button class="mock-row-del" onclick="removeMember('+i+')" aria-label="Retirer">✕</button>'
-        + '</div>';
-    }).join('');
-    const validated = members.filter(m=>m.size).length;
-    document.getElementById('memberCountLabel').textContent = validated+'/'+members.length+' tailles validées';
-  }
-  function addMember(){
-    members.push({name:'Nouvel ami', size:''});
-    renderMembers();
-  }
-  function removeMember(i){ members.splice(i,1); renderMembers(); }
-  function updateMemberName(i,val){ members[i].name = val || 'Ami'; renderMembers(); }
-  function updateMemberSize(i,val){ members[i].size = val; renderMembers(); }
+  /* ---------- (aperçu statique "Escouade Nuit Rouge" : voir HTML, pas de logique JS nécessaire) ---------- */
 
   /* ---------- homepage photo hydration (single source of truth: PRODUCTS) ---------- */
   function initHomepagePhotos(){
@@ -2371,7 +2344,6 @@
 
   /* ---------- init ---------- */
   renderCart();
-  renderMembers();
   initHomepagePhotos();
   loadThemes();
   initCookieBanner();
