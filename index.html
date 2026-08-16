@@ -77,6 +77,7 @@
 
   /* toast */
   .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bone);color:var(--bg);padding:13px 22px;border-radius:100px;font-size:14px;font-weight:600;z-index:95;opacity:0;transition:opacity .2s ease, transform .2s ease;display:flex;align-items:center;gap:10px;box-shadow:0 12px 30px rgba(0,0,0,0.4);max-width:90vw;}
+  body.has-cookie-banner .toast{bottom:110px;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .toast .dot-ok{width:8px;height:8px;border-radius:50%;background:var(--oxblood);flex:none;}
 
@@ -2372,12 +2373,14 @@
   function repondreCookies(accepte){
     try{ localStorage.setItem('lc_cookie_consent', accepte ? 'accepte' : 'refuse'); }catch(err){}
     document.getElementById('cookieBanner').style.display = 'none';
+    document.body.classList.remove('has-cookie-banner');
     // Point d'accroche pour les futurs scripts de mesure/publicité (ex: pixel TikTok) :
     // n'appeler leur chargement qu'après avoir vérifié getCookieConsent() === 'accepte'.
   }
   function initCookieBanner(){
     if(!getCookieConsent()){
       document.getElementById('cookieBanner').style.display = '';
+      document.body.classList.add('has-cookie-banner');
     }
   }
 
