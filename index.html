@@ -39,15 +39,7 @@
   /* ---------- scroll reveal ---------- */
   .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
   .reveal.in-view{opacity:1;transform:translateY(0);}
-  .reveal-stagger.in-view > *{opacity:1;transform:none;}
-  .reveal-stagger > *{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease),transform .6s var(--ease);}
-  .reveal-stagger.in-view > *:nth-child(1){transition-delay:.03s;}
-  .reveal-stagger.in-view > *:nth-child(2){transition-delay:.11s;}
-  .reveal-stagger.in-view > *:nth-child(3){transition-delay:.19s;}
-  .reveal-stagger.in-view > *:nth-child(4){transition-delay:.27s;}
-  .reveal-stagger.in-view > *:nth-child(5){transition-delay:.35s;}
-  .reveal-stagger.in-view > *:nth-child(6){transition-delay:.43s;}
-  @media (prefers-reduced-motion: reduce){.reveal,.reveal-stagger>*{opacity:1 !important;transform:none !important;transition:none !important;}}
+  @media (prefers-reduced-motion: reduce){.reveal{opacity:1 !important;transform:none !important;transition:none !important;}}
 
   header{position:sticky;top:0;z-index:60;background:rgba(19,17,16,0.82);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--line-soft);transition:box-shadow .35s var(--ease),background .35s var(--ease),border-color .35s var(--ease);}
   header.scrolled{background:rgba(13,11,10,0.94);border-color:var(--line);box-shadow:0 18px 40px -20px rgba(0,0,0,0.65);}
@@ -2571,30 +2563,30 @@
     }
   })();
 
-  /* ---------- scroll reveal ---------- */
+  /* ---------- scroll reveal (decorative sections only — never applied to product cards) ---------- */
   (function(){
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const targets = document.querySelectorAll(
-      '.section-head, .cat-card, .why-item, .review-card, .group-panel, .promise-bar, .final-cta, .faq-item, .gallery-main'
-    );
-    const grids = document.querySelectorAll('#productGrid.product-grid');
-    targets.forEach(el=> el.classList.add('reveal'));
-    grids.forEach(el=> el.classList.add('reveal-stagger'));
-    if(reduced){
-      targets.forEach(el=> el.classList.add('in-view'));
-      grids.forEach(el=> el.classList.add('in-view'));
-      return;
+    try{
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const targets = document.querySelectorAll(
+        '.section-head, .cat-card, .why-item, .review-card, .group-panel, .promise-bar, .final-cta, .faq-item, .gallery-main'
+      );
+      const showAll = ()=> targets.forEach(el=> el.classList.add('in-view'));
+      targets.forEach(el=> el.classList.add('reveal'));
+      if(reduced || typeof IntersectionObserver === 'undefined'){ showAll(); return; }
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(entry.isIntersecting){
+            entry.target.classList.add('in-view');
+            io.unobserve(entry.target);
+          }
+        });
+      }, {threshold:0.1, rootMargin:'0px 0px -6% 0px'});
+      targets.forEach(el=> io.observe(el));
+      /* safety net: if anything is ever missed (layout timing, older browsers…) force it visible */
+      setTimeout(showAll, 2500);
+    } catch(err){
+      document.querySelectorAll('.reveal').forEach(el=> el.classList.add('in-view'));
     }
-    const io = new IntersectionObserver((entries)=>{
-      entries.forEach(entry=>{
-        if(entry.isIntersecting){
-          entry.target.classList.add('in-view');
-          io.unobserve(entry.target);
-        }
-      });
-    }, {threshold:0.12, rootMargin:'0px 0px -8% 0px'});
-    targets.forEach(el=> io.observe(el));
-    grids.forEach(el=> io.observe(el));
   })();
 </script>
 </body>
