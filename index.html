@@ -2451,7 +2451,7 @@
 
     const btn = document.getElementById('bpOrderConfirmBtn');
     btn.disabled = true;
-    btn.textContent = 'Envoi…';
+    btn.textContent = 'Redirection vers le paiement…';
 
     try{
       const res = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode)+'/commander', {
@@ -2460,20 +2460,22 @@
         body: JSON.stringify({ nom, email, adresse, ville, codePostal })
       });
       const resData = await res.json().catch(()=>({}));
-      const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
-      if(refreshed.ok){
-        currentBandeData = await refreshed.json();
-        renderOrderSection(currentBandeData);
-        renderTrackingSection(currentBandeData);
-      }
-      if(!res.ok){
+
+      if(!res.ok || !resData.url){
+        const refreshed = await fetch('/api/bandes/'+encodeURIComponent(currentBandeCode));
+        if(refreshed.ok){
+          currentBandeData = await refreshed.json();
+          renderOrderSection(currentBandeData);
+          renderTrackingSection(currentBandeData);
+        }
         errorEl.textContent = resData.error || 'Impossible de passer la commande pour le moment.';
         errorEl.style.display = '';
         btn.disabled = false;
         btn.textContent = 'Confirmer la commande';
-      } else {
-        showToast('Commande confirmée — référence '+resData.reference);
+        return;
       }
+
+      window.location.href = resData.url;
     }catch(err){
       errorEl.textContent = 'Impossible de passer la commande pour le moment.';
       errorEl.style.display = '';
@@ -2714,4 +2716,3 @@
 </script>
 </body>
 </html>
-
