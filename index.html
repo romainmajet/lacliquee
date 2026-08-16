@@ -230,6 +230,15 @@
   .form-row label{display:block;font-size:12.5px;color:var(--bone-dim);margin-bottom:6px;}
   .form-row input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--bone);font-size:14px;}
   .form-row input:focus{border-color:var(--gold);}
+  .form-row input:-webkit-autofill,
+  .form-row input:-webkit-autofill:hover,
+  .form-row input:-webkit-autofill:focus{
+    -webkit-text-fill-color:var(--bone);
+    box-shadow:0 0 0 1000px var(--bg) inset;
+    -webkit-box-shadow:0 0 0 1000px var(--bg) inset;
+    caret-color:var(--bone);
+    transition:background-color 5000s ease-in-out 0s;
+  }
   .form-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .checkout-summary{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;}
   .checkout-summary .row{display:flex;justify-content:space-between;padding:4px 0;color:var(--bone-dim);}
