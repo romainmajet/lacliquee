@@ -60,8 +60,8 @@
   .burger{display:flex;background:none;border:1px solid var(--line);color:var(--bone);width:38px;height:38px;border-radius:100px;align-items:center;justify-content:center;cursor:pointer;}
   @media(min-width:900px){.nav-links{display:flex;} .burger{display:none;}}
 
-  .mobile-menu{position:absolute;top:100%;left:0;right:0;background:var(--bg-alt);border-bottom:1px solid var(--line);display:flex;flex-direction:column;padding:8px 24px 18px;max-height:0;overflow:hidden;transition:max-height .3s var(--ease);}
-  .mobile-menu.open{max-height:400px;}
+  .mobile-menu{position:absolute;top:100%;left:0;right:0;background:var(--bg-alt);border-bottom:1px solid transparent;display:flex;flex-direction:column;padding:0 24px;max-height:0;overflow:hidden;transition:max-height .3s var(--ease), padding .3s var(--ease);}
+  .mobile-menu.open{max-height:400px;padding:8px 24px 18px;border-bottom-color:var(--line);}
   .mobile-menu button{padding:12px 0;border-bottom:1px solid var(--line);border-top:none;border-left:none;border-right:none;background:none;font-size:15px;color:var(--bone);text-align:left;cursor:pointer;}
   .mobile-menu button:last-child{border-bottom:none;}
 
