@@ -1,7 +1,9 @@
-import { envoyerEmailConfirmation } from '../_lib/email.js';
-
 function genererReference() {
   return 'LC-' + Math.floor(100000 + Math.random() * 899999);
+}
+
+function calculerFraisLivraison(totalProduits) {
+  return totalProduits >= 60 ? 0 : 4.90;
 }
 
 export async function onRequestPost(context) {
@@ -40,7 +42,7 @@ export async function onRequestPost(context) {
   // --- Revérification serveur des prix et du stock (jamais confiance au client) ---
   const lignes = [];
   const erreurs = [];
-  let total = 0;
+  let totalProduits = 0;
 
   for (const item of items) {
     const id = String(item.id || '').slice(0, 100);
@@ -73,7 +75,7 @@ export async function onRequestPost(context) {
     }
 
     const sousTotal = Math.round(produit.prix * quantite * 100) / 100;
-    total += sousTotal;
+    totalProduits += sousTotal;
 
     lignes.push({
       produit_id: produit.id,
@@ -92,26 +94,28 @@ export async function onRequestPost(context) {
     });
   }
 
-  total = Math.round(total * 100) / 100;
+  totalProduits = Math.round(totalProduits * 100) / 100;
+  const fraisLivraison = calculerFraisLivraison(totalProduits);
+  const total = Math.round((totalProduits + fraisLivraison) * 100) / 100;
 
-  // --- Enregistrement réel de la commande ---
+  // --- Enregistrement de la commande, en attente de paiement ---
   let reference = genererReference();
   let commandeId;
   try {
     const inserted = await env.DB.prepare(
-      `INSERT INTO commandes (reference, type, email, nom, adresse, ville, code_postal, total, date_creation)
-       VALUES (?, 'panier', ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO commandes (reference, type, email, nom, adresse, ville, code_postal, total, frais_livraison, statut, date_creation)
+       VALUES (?, 'panier', ?, ?, ?, ?, ?, ?, ?, 'en_attente_paiement', ?)
        RETURNING id`
-    ).bind(reference, email, nom, adresse, ville, codePostal, total, new Date().toISOString()).first();
+    ).bind(reference, email, nom, adresse, ville, codePostal, total, fraisLivraison, new Date().toISOString()).first();
     commandeId = inserted.id;
   } catch (err) {
     // collision improbable sur la référence : on retente une fois
     reference = genererReference();
     const inserted = await env.DB.prepare(
-      `INSERT INTO commandes (reference, type, email, nom, adresse, ville, code_postal, total, date_creation)
-       VALUES (?, 'panier', ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO commandes (reference, type, email, nom, adresse, ville, code_postal, total, frais_livraison, statut, date_creation)
+       VALUES (?, 'panier', ?, ?, ?, ?, ?, ?, ?, 'en_attente_paiement', ?)
        RETURNING id`
-    ).bind(reference, email, nom, adresse, ville, codePostal, total, new Date().toISOString()).first();
+    ).bind(reference, email, nom, adresse, ville, codePostal, total, fraisLivraison, new Date().toISOString()).first();
     commandeId = inserted.id;
   }
 
@@ -131,16 +135,67 @@ export async function onRequestPost(context) {
   }
   await env.DB.batch(statements);
 
-  const resultatEmail = await envoyerEmailConfirmation(env, { to: email, prenom: nom, reference, total, lignes });
-  if (!resultatEmail.envoye) {
-    console.error('Email de confirmation non envoyé:', resultatEmail.raison);
+  // --- Création de la session de paiement Stripe ---
+  const origin = new URL(request.url).origin;
+  const params = new URLSearchParams();
+  params.append('mode', 'payment');
+  params.append('customer_email', email);
+  params.append('client_reference_id', reference);
+  params.append('success_url', origin + '/?commande=succes&ref=' + encodeURIComponent(reference));
+  params.append('cancel_url', origin + '/?commande=annulee');
+  params.append('metadata[commande_id]', String(commandeId));
+  params.append('metadata[reference]', reference);
+
+  lignes.forEach((l, i) => {
+    params.append(`line_items[${i}][price_data][currency]`, 'eur');
+    params.append(`line_items[${i}][price_data][product_data][name]`, l.nom_produit + (l.taille ? ' (taille ' + l.taille + ')' : ''));
+    params.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round(l.prix_unitaire * 100)));
+    params.append(`line_items[${i}][quantity]`, String(l.quantite));
+  });
+
+  if (fraisLivraison > 0) {
+    const i = lignes.length;
+    params.append(`line_items[${i}][price_data][currency]`, 'eur');
+    params.append(`line_items[${i}][price_data][product_data][name]`, 'Livraison');
+    params.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round(fraisLivraison * 100)));
+    params.append(`line_items[${i}][quantity]`, '1');
   }
+
+  let stripeRes, stripeData;
+  try {
+    stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    });
+    stripeData = await stripeRes.json();
+  } catch (err) {
+    return new Response(JSON.stringify({ error: 'Impossible de contacter le service de paiement' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    });
+  }
+
+  if (!stripeRes.ok || !stripeData.url) {
+    console.error('Erreur Stripe:', stripeData.error || stripeData);
+    return new Response(JSON.stringify({ error: 'Impossible de créer le paiement' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    });
+  }
+
+  await env.DB.prepare(
+    'UPDATE commandes SET stripe_session_id = ? WHERE id = ?'
+  ).bind(stripeData.id, commandeId).run();
 
   return new Response(JSON.stringify({
     valide: true,
     reference,
     total,
-    lignes
+    url: stripeData.url
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json; charset=utf-8' }
