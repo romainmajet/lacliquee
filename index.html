@@ -848,7 +848,8 @@
       <h3 class="pp-section-title">Rejoindre la bande</h3>
       <div style="display:flex;flex-direction:column;gap:12px;max-width:420px;">
         <input type="text" id="bpPrenom" placeholder="Ton prénom" style="background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
-        <select id="bpPersonnageSelect" style="background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
+        <div id="bpPersonnageCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;"></div>
+        <select id="bpPersonnageSelect" style="display:none;">
           <option value="">Choisir un personnage…</option>
         </select>
         <select id="bpTailleSelect" style="background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
@@ -2018,6 +2019,39 @@
     return validCount;
   }
 
+  const PERSONNAGE_COLORS = ['#7a1f2b','#3d5a80','#5a4a6a','#4a6a4a','#8a6a3a','#6a3a5a'];
+  function couleurPersonnage(nom){
+    let h = 0;
+    for(let i=0;i<nom.length;i++) h = (h*31 + nom.charCodeAt(i)) >>> 0;
+    return PERSONNAGE_COLORS[h % PERSONNAGE_COLORS.length];
+  }
+  function renderPersonnageCards(personnages, takenIds, selectedId){
+    const wrap = document.getElementById('bpPersonnageCards');
+    wrap.innerHTML = personnages.map(p=>{
+      const pris = takenIds.has(p.id);
+      const selected = String(p.id) === String(selectedId);
+      const initiale = (p.nom || '?').trim().charAt(0).toUpperCase();
+      const bg = couleurPersonnage(p.nom || '');
+      const stateStyle = pris
+        ? 'opacity:.4;cursor:not-allowed;'
+        : selected
+          ? 'border-color:var(--gold);background:rgba(201,168,106,.08);cursor:pointer;'
+          : 'cursor:pointer;';
+      return '<button type="button" ' + (pris ? 'disabled ' : '') +
+        'onclick="choisirPersonnageCard(' + p.id + ')" ' +
+        'style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 8px;background:var(--bg);border:1px solid var(--line);border-radius:12px;' + stateStyle + '">' +
+        '<span style="width:40px;height:40px;border-radius:50%;background:' + bg + ';display:flex;align-items:center;justify-content:center;color:#f0e8dc;font-weight:600;font-size:15px;">' + initiale + '</span>' +
+        '<span style="font-size:12px;color:var(--bone);text-align:center;">' + escapeHtml(p.nom) + '</span>' +
+        '<span style="font-size:10px;color:' + (pris ? 'var(--oxblood-light)' : 'var(--bone-dim)') + ';">' + (pris ? 'Déjà pris' : (selected ? 'Sélectionné' : 'Disponible')) + '</span>' +
+        '</button>';
+    }).join('');
+  }
+  function choisirPersonnageCard(id){
+    document.getElementById('bpPersonnageSelect').value = id;
+    const takenIds = new Set((currentBandeData ? currentBandeData.membres : []).filter(m=>m.statut==='valide').map(m=>m.personnage_id));
+    renderPersonnageCards(currentBandeData.personnages, takenIds, id);
+  }
+
   function renderBandePage(data){
     document.getElementById('bpKicker').textContent = 'Bande';
     document.getElementById('bpTitle').textContent = data.theme_nom;
@@ -2027,6 +2061,7 @@
     const select = document.getElementById('bpPersonnageSelect');
     select.innerHTML = '<option value="">Choisir un personnage…</option>' +
       data.personnages.filter(p=>!takenIds.has(p.id)).map(p=>'<option value="'+p.id+'">'+escapeHtml(p.nom)+'</option>').join('');
+    renderPersonnageCards(data.personnages, takenIds, null);
 
     const allTaken = validCount >= data.nb_personnes;
     const commandePassee = data.statut_commande === 'confirmee';
