@@ -479,6 +479,15 @@
   <button class="lightbox-nav lightbox-next" onclick="lightboxNav(1)" aria-label="Image suivante">›</button>
 </div>
 
+<div class="modal" id="confirmModal" role="alertdialog" aria-modal="true">
+  <h3 id="confirmModalTitle" style="margin-bottom:10px;">Confirmer</h3>
+  <p id="confirmModalText" style="color:var(--bone-dim);font-size:14.5px;margin-bottom:22px;"></p>
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="closeConfirmModal(false)">Annuler</button>
+    <button class="btn btn-primary" style="flex:1;justify-content:center;" id="confirmModalOkBtn" onclick="closeConfirmModal(true)">Continuer</button>
+  </div>
+</div>
+
 <section class="hero home-section">
   <div class="hero-bg"></div>
   <div class="hero-inner">
@@ -792,7 +801,7 @@
     </div>
     <div class="why-grid">
       <div class="why-item"><div class="ic">↕</div><h3>La bonne taille, vraiment</h3><p>Mesures en centimètres, pas juste S/M/L — un guide par produit, pas un guide générique.</p></div>
-      <div class="why-item"><div class="ic">✓</div><h3>Livré à temps ou pas commandé</h3><p>Passé la date limite, on ferme l'option plutôt que de vous laisser espérer.</p></div>
+      <div class="why-item"><div class="ic">✓</div><h3>Livré avant Halloween, garanti</h3><p>Commandé avant le 24 octobre, ton colis arrive à temps pour la soirée.</p></div>
       <div class="why-item"><div class="ic">↺</div><h3>Retour simple, article par article</h3><p>Un costume ne va pas ? On le reprend sans faire perdre le reste de la commande.</p></div>
     </div>
   </div>
@@ -1007,7 +1016,7 @@
     </div>
     <div class="foot-bottom">
       <span>© 2026 La Clique.</span>
-      <span>Paiement sécurisé · Livraison France & UE</span>
+      <span>Livraison France & UE · Retour simple, article par article</span>
     </div>
   </div>
 </footer>
@@ -1519,6 +1528,20 @@
   }
 
   /* ---------- overlays management ---------- */
+  let _confirmResolve = null;
+  function askConfirm(text, title){
+    document.getElementById('confirmModalTitle').textContent = title || 'Confirmer';
+    document.getElementById('confirmModalText').textContent = text;
+    document.getElementById('overlayBg').classList.add('open');
+    document.getElementById('confirmModal').classList.add('open');
+    return new Promise(resolve => { _confirmResolve = resolve; });
+  }
+  function closeConfirmModal(result){
+    document.getElementById('confirmModal').classList.remove('open');
+    document.getElementById('overlayBg').classList.remove('open');
+    if(_confirmResolve){ _confirmResolve(result); _confirmResolve = null; }
+  }
+
   function closeAllOverlays(){
     document.getElementById('overlayBg').classList.remove('open');
     document.getElementById('searchOverlay').classList.remove('open');
@@ -1528,6 +1551,7 @@
     document.getElementById('contactModal').classList.remove('open');
     document.getElementById('cartDrawer').classList.remove('open');
     document.getElementById('lightbox').classList.remove('open');
+    if(document.getElementById('confirmModal').classList.contains('open')){ closeConfirmModal(false); }
     closeMobileMenu();
   }
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAllOverlays(); });
@@ -2159,14 +2183,15 @@
     }
   }
 
-  function showCommandeForm(){
+  async function showCommandeForm(){
     if(currentBandeData){
       const validCount = currentBandeData.membres.filter(m=>m.statut==='valide').length;
       const manquants = currentBandeData.nb_personnes - validCount;
       if(manquants > 0){
         const mot = manquants === 1 ? 'participant' : 'participants';
-        const ok = window.confirm(
-          'Il manque encore '+manquants+' '+mot+' — seuls les '+validCount+' costumes déjà validés seront commandés. Continuer ?'
+        const ok = await askConfirm(
+          'Il manque encore '+manquants+' '+mot+' — seuls les '+validCount+' costumes déjà validés seront commandés. Continuer ?',
+          'Bande incomplète'
         );
         if(!ok) return;
       }
@@ -2336,7 +2361,7 @@
   async function quitterBande(membreId){
     const mon = getMonMembre(currentBandeCode);
     if(!mon || mon.membre_id !== membreId) return;
-    const ok = window.confirm('Quitter la bande ? Ton personnage redeviendra disponible pour quelqu\'un d\'autre.');
+    const ok = await askConfirm('Ton personnage redeviendra disponible pour quelqu\'un d\'autre.', 'Quitter la bande ?');
     if(!ok) return;
 
     try{
