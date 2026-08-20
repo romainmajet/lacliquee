@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://lacliquee.com/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
+  <url><loc>https://lacliquee.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://lacliquee.com/produit/ombres-jumelles</loc><priority>0.8</priority></url>
+  <url><loc>https://lacliquee.com/produit/soeurs-de-sang</loc><priority>0.8</priority></url>
+  <url><loc>https://lacliquee.com/produit/escouade-nuit-rouge</loc><priority>0.8</priority></url>
+  <url><loc>https://lacliquee.com/produit/meute-de-lombre</loc><priority>0.8</priority></url>
+  <url><loc>https://lacliquee.com/produit/le-corbeau</loc><priority>0.8</priority></url>
+  <url><loc>https://lacliquee.com/produit/la-voyante</loc><priority>0.8</priority></url>
+  <url><loc>https://lacliquee.com/produit/kit-maquillage-nuit-noire</loc><priority>0.6</priority></url>
+  <url><loc>https://lacliquee.com/produit/lentilles-crocs-fx</loc><priority>0.6</priority></url>
+  <url><loc>https://lacliquee.com/produit/masque-papi-realiste</loc><priority>0.6</priority></url>
+  <url><loc>https://lacliquee.com/produit/masque-papi-ride</loc><priority>0.6</priority></url>
+  <url><loc>https://lacliquee.com/produit/confrerie-des-cinq</loc><priority>0.8</priority></url>
 </urlset>
