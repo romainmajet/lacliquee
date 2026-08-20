@@ -7,6 +7,11 @@
 <meta id="pageMetaDesc" name="description" content="Déguisements Halloween pensés pour deux ou pour toute la bande — coordonnés, à la bonne taille, commandez avant le 24 octobre pour être livré à temps.">
 <meta id="pageOgTitle" property="og:title" content="La Clique — Déguisements Halloween pour duos & bandes">
 <meta id="pageOgDesc" property="og:description" content="Déguisements Halloween pensés pour deux ou pour toute la bande — coordonnés, à la bonne taille, commandez avant le 24 octobre pour être livré à temps.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lacliquee.com">
+<link rel="canonical" href="https://lacliquee.com">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23131110'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='36' font-weight='700' font-style='italic' fill='%23b6905c' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23131110'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='36' font-weight='700' font-style='italic' fill='%23b6905c' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -561,7 +566,7 @@
     <button class="logo" onclick="goHome();window.scrollTo({top:0,behavior:'smooth'})">La <span>Clique</span></button>
     <nav class="nav-links">
       <button onclick="showCategory('duo')">Duos</button>
-      <button onclick="goToHomeSection('groupes')">Groupes</button>
+      <button onclick="goToHomeSection('groupes')">Créer ma bande</button>
       <button onclick="showCategory('homme')">Homme</button>
       <button onclick="showCategory('femme')">Femme</button>
       <button onclick="showCategory('accessoire')">Accessoires</button>
@@ -576,7 +581,7 @@
     </div>
     <div class="mobile-menu" id="mobileMenu">
       <button onclick="closeMobileMenu();showCategory('duo')">Duos</button>
-      <button onclick="closeMobileMenu();goToHomeSection('groupes')">Groupes</button>
+      <button onclick="closeMobileMenu();goToHomeSection('groupes')">Créer ma bande</button>
       <button onclick="closeMobileMenu();showCategory('homme')">Homme</button>
       <button onclick="closeMobileMenu();showCategory('femme')">Femme</button>
       <button onclick="closeMobileMenu();showCategory('accessoire')">Accessoires</button>
@@ -723,8 +728,43 @@
 
 <div class="torn-divider" aria-hidden="true"></div>
 
-<section id="bestsellers" class="home-section">
+<section id="groupes" class="home-section">
   <div class="wrap">
+    <div class="section-head">
+      <div class="kicker">Pour les groupes</div>
+      <h2>Une bande, une seule liste</h2>
+      <p>Chacun choisit sa taille de son côté, la commande reste groupée et suivie ensemble.</p>
+    </div>
+    <div class="group-panel">
+      <div>
+        <ol class="step-list">
+          <li><strong>Choisissez le thème</strong>Un pack est prévu pour 4, 6 ou 8 personnes.</li>
+          <li><strong>Partagez le lien</strong>Chaque ami renseigne sa taille depuis son téléphone.</li>
+          <li><strong>Suivez ensemble</strong>Une seule page pour voir qui a validé et où en est la livraison.</li>
+        </ol>
+        <div id="themeSelectRow" style="margin-bottom:14px;">
+          <select id="themeSelect" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
+            <option value="">Choisir un thème…</option>
+          </select>
+        </div>
+        <div class="share-link-row">
+          <input type="text" id="shareLink" value="Choisissez un thème puis créez la bande" readonly>
+          <button onclick="handleCreateBande()">Créer la bande</button>
+        </div>
+      </div>
+      <div class="mock-share">
+        <div class="hdr"><span>Escouade Nuit Rouge</span><span>Exemple</span></div>
+        <div class="mock-row"><span>Camille</span><span class="status ok">Taille M</span></div>
+        <div class="mock-row"><span>Karim</span><span class="status ok">Taille L</span></div>
+        <div class="mock-row"><span>Alice</span><span class="status wait">En attente</span></div>
+        <div class="mock-row"><span>Noa</span><span class="status wait">En attente</span></div>
+        <p style="font-size:12px;color:var(--bone-dim);margin-top:10px;">Voici à quoi ressemblera votre bande une fois le lien partagé — chaque ami choisira son propre nom et sa taille en cliquant sur le lien.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="bestsellers" class="home-section">  <div class="wrap">
     <div class="section-head">
       <div class="kicker">Sélection</div>
       <h2>Les plus formés cette semaine</h2>
@@ -993,7 +1033,7 @@
     </div>
     <div class="cat-grid">
       <button class="cat-card" onclick="showCategory('duo')"><div class="ic">×2</div><div><div class="n">à deux</div><h3>Duos</h3></div></button>
-      <button class="cat-card" onclick="goToHomeSection('groupes')"><div class="ic">4+</div><div><div class="n">3 à 8 personnes</div><h3>Groupes</h3></div></button>
+      <button class="cat-card" onclick="goToHomeSection('groupes')"><div class="ic">4+</div><div><div class="n">3 à 8 personnes</div><h3>Créer ma bande</h3></div></button>
       <button class="cat-card" onclick="showCategory('homme')"><div class="ic">×1</div><div><div class="n">tenue seule</div><h3>Solo</h3></div></button>
       <button class="cat-card" onclick="showCategory('accessoire')"><div class="ic">✦</div><div><div class="n">maquillage, lentilles</div><h3>Accessoires</h3></div></button>
     </div>
@@ -1020,42 +1060,6 @@
       <div class="why-item"><div class="ic">↕</div><h3>La bonne taille, vraiment</h3><p>Mesures en centimètres, pas juste S/M/L — un guide par produit, pas un guide générique.</p></div>
       <div class="why-item"><div class="ic">✓</div><h3>Livré avant Halloween, garanti</h3><p>Commandé avant le 24 octobre, ton colis arrive à temps pour la soirée.</p></div>
       <div class="why-item"><div class="ic">↺</div><h3>Retour simple, article par article</h3><p>Un costume ne va pas ? On le reprend sans faire perdre le reste de la commande.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="groupes" class="home-section">
-  <div class="wrap">
-    <div class="section-head">
-      <div class="kicker">Pour les groupes</div>
-      <h2>Une bande, une seule liste</h2>
-      <p>Chacun choisit sa taille de son côté, la commande reste groupée et suivie ensemble.</p>
-    </div>
-    <div class="group-panel">
-      <div>
-        <ol class="step-list">
-          <li><strong>Choisissez le thème</strong>Un pack est prévu pour 4, 6 ou 8 personnes.</li>
-          <li><strong>Partagez le lien</strong>Chaque ami renseigne sa taille depuis son téléphone.</li>
-          <li><strong>Suivez ensemble</strong>Une seule page pour voir qui a validé et où en est la livraison.</li>
-        </ol>
-        <div id="themeSelectRow" style="margin-bottom:14px;">
-          <select id="themeSelect" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:10px 16px;color:var(--bone);font-size:13px;">
-            <option value="">Choisir un thème…</option>
-          </select>
-        </div>
-        <div class="share-link-row">
-          <input type="text" id="shareLink" value="Choisissez un thème puis créez la bande" readonly>
-          <button onclick="handleCreateBande()">Créer la bande</button>
-        </div>
-      </div>
-      <div class="mock-share">
-        <div class="hdr"><span>Escouade Nuit Rouge</span><span>Exemple</span></div>
-        <div class="mock-row"><span>Camille</span><span class="status ok">Taille M</span></div>
-        <div class="mock-row"><span>Karim</span><span class="status ok">Taille L</span></div>
-        <div class="mock-row"><span>Alice</span><span class="status wait">En attente</span></div>
-        <div class="mock-row"><span>Noa</span><span class="status wait">En attente</span></div>
-        <p style="font-size:12px;color:var(--bone-dim);margin-top:10px;">Voici à quoi ressemblera votre bande une fois le lien partagé — chaque ami choisira son propre nom et sa taille en cliquant sur le lien.</p>
-      </div>
     </div>
   </div>
 </section>
@@ -1206,7 +1210,7 @@
         <h4>Boutique</h4>
         <ul>
           <li><button onclick="showCategory('duo')">Duos</button></li>
-          <li><button onclick="goToHomeSection('groupes')">Groupes</button></li>
+          <li><button onclick="goToHomeSection('groupes')">Créer ma bande</button></li>
           <li><button onclick="showCategory('accessoire')">Accessoires</button></li>
           <li><button onclick="showToast('Aucune promotion active pour le moment')">Promotions</button></li>
         </ul>
@@ -1215,8 +1219,8 @@
         <h4>Aide</h4>
         <ul>
           <li><button onclick="openSizeGuide()">Guide des tailles</button></li>
-          <li><button onclick="showToast('Livraison estimée à la commande — commandez avant le 24 octobre pour être livré à temps pour Halloween')">Livraison & délais</button></li>
-          <li><button onclick="showToast('Retours article par article, sous 30 jours')">Retours</button></li>
+          <li><button onclick="openInfo('livraison')">Livraison & délais</button></li>
+          <li><button onclick="openInfo('retours')">Retours</button></li>
           <li><button onclick="goToHomeAnchor('.faq-item')">FAQ</button></li>
         </ul>
       </div>
@@ -1289,7 +1293,7 @@
       images:null,
       shippingInfo:SHIP_STANDARD, returnsInfo:RETURNS_STANDARD,
       details:[
-        {t:'Comment ça marche pour un groupe', d:'Utilisez le lien de partage en bas de page pour laisser chaque membre de la bande renseigner sa taille séparément — voir la section "Groupes" de l\'accueil.'},
+        {t:'Comment ça marche pour un groupe', d:'Utilisez le lien de partage en bas de page pour laisser chaque membre de la bande renseigner sa taille séparément — voir la section "Créer ma bande" de l\'accueil.'},
         {t:'Composition & entretien', d:'Polyester technique résistant, lavage machine 30°C cycle délicat.'},
         {t:'Contenu du pack (x4)', d:'4 tuniques, 4 cagoules, 4 paires de gants.'}
       ]
@@ -2121,6 +2125,22 @@
         + '<h4>5. Cookies</h4><p>Le site peut utiliser des cookies techniques nécessaires à son fonctionnement (panier, préférences d\'affichage). Aucun cookie publicitaire tiers n\'est déposé sans consentement préalable.</p>'
         + '<h4>6. Vos droits</h4><p>Conformément au RGPD, vous disposez d\'un droit d\'accès, de rectification, d\'effacement, de limitation et d\'opposition sur vos données, ainsi que d\'un droit à la portabilité. Pour exercer ces droits, utilisez le formulaire de contact du site.</p>'
         + '<h4>7. Sécurité</h4><p>Des mesures techniques et organisationnelles raisonnables sont mises en place pour protéger les données contre l\'accès non autorisé, la perte ou l\'altération.</p>'
+    }
+    livraison: {
+      title: 'Livraison & délais',
+      body:
+        '<h4>Délais d\'expédition</h4><p>Chaque produit est expédié sous 24 à 48h depuis notre entrepôt en France. Le délai exact figure sur chaque fiche produit, dans le bloc "Livraison".</p>'
+        + '<h4>Délai pour Halloween</h4><p>Toute commande passée avant le <strong>24 octobre</strong> est garantie livrée avant Halloween. Passé cette date, le délai ne peut plus être garanti — n\'hésite pas à nous contacter pour vérifier au cas par cas plutôt que de risquer une déception le soir J.</p>'
+        + '<h4>Zone de livraison</h4><p>Livraison en France métropolitaine et dans l\'Union européenne, en 2 à 4 jours ouvrés après expédition.</p>'
+        + '<h4>Suivi de commande</h4><p>Un e-mail de confirmation est envoyé dès que le paiement est validé. Pour une commande de bande, le suivi (confirmée, en préparation, expédiée, livrée) reste consultable à tout moment depuis le lien de la bande.</p>'
+    },
+    retours: {
+      title: 'Retours',
+      body:
+        '<h4>Délai de retour</h4><p>Chaque produit peut être retourné dans un délai de 30 jours après réception, dans son état d\'origine (non porté, étiquettes présentes si applicable).</p>'
+        + '<h4>Article par article</h4><p>Dans une commande groupée, un seul costume peut être retourné sans affecter le reste de la commande ni les autres membres de la bande.</p>'
+        + '<h4>Comment faire une demande</h4><p>Utilise le formulaire de contact du site en indiquant ta référence de commande — la réponse arrive sous 24h ouvrées.</p>'
+        + '<h4>Remboursement</h4><p>Le remboursement intervient dans les 14 jours suivant la réception du produit retourné, sur le moyen de paiement utilisé lors de l\'achat.</p>'
     }
   };
   function openInfo(type){
