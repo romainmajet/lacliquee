@@ -101,7 +101,7 @@ async function gererPaiementExpire(env, session) {
   if (bandeId) {
     statements.push(
       env.DB.prepare(
-        "UPDATE bandes SET statut_commande = NULL, commande_id = NULL WHERE id = ? AND statut_commande = 'confirmee'"
+        "UPDATE bandes SET statut_commande = '', commande_id = NULL WHERE id = ? AND statut_commande = 'confirmee'"
       ).bind(bandeId)
     );
   }
