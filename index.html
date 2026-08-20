@@ -671,6 +671,37 @@
   </div>
 </div>
 
+<div class="modal" id="trackingModal">
+  <div class="modal-head">
+    <h3>Suivre ma commande</h3>
+    <button class="modal-x" onclick="closeAllOverlays()">✕</button>
+  </div>
+  <div id="trackingFormWrap">
+    <p style="font-size:13.5px;color:var(--bone-dim);margin-bottom:18px;">Renseigne ta référence de commande (reçue par e-mail) et l'adresse e-mail utilisée à la commande.</p>
+    <form id="trackingForm" onsubmit="submitTracking(event)">
+      <div class="form-row">
+        <label for="trackingRef">Référence de commande</label>
+        <input type="text" id="trackingRef" placeholder="LC-123456" required>
+      </div>
+      <div class="form-row">
+        <label for="trackingEmail">E-mail</label>
+        <input type="email" id="trackingEmail" required>
+      </div>
+      <p id="trackingError" style="color:var(--oxblood-light);font-size:13px;margin-bottom:12px;display:none;"></p>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Voir le statut</button>
+    </form>
+  </div>
+  <div id="trackingResult" style="display:none;">
+    <div class="checkout-summary" style="margin-bottom:18px;">
+      <div class="row"><span>Référence</span><span id="trResultRef"></span></div>
+      <div class="row"><span>Date</span><span id="trResultDate"></span></div>
+      <div class="row total"><span>Total</span><span id="trResultTotal"></span></div>
+    </div>
+    <p style="font-size:14.5px;margin-bottom:6px;"><strong>Statut :</strong> <span id="trResultStatut"></span></p>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:14px;" onclick="document.getElementById('trackingFormWrap').style.display='';document.getElementById('trackingResult').style.display='none';document.getElementById('trackingForm').reset();">Chercher une autre commande</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span class="dot-ok"></span><span id="toastText"></span></div>
 
 <!-- cart drawer -->
@@ -1234,6 +1265,7 @@
           <li><button onclick="openSizeGuide()">Guide des tailles</button></li>
           <li><button onclick="openInfo('livraison')">Livraison & délais</button></li>
           <li><button onclick="openInfo('retours')">Retours</button></li>
+          <li><button onclick="openTrackingModal()">Suivre ma commande</button></li>
           <li><button onclick="goToHomeAnchor('.faq-item')">FAQ</button></li>
         </ul>
       </div>
@@ -1783,6 +1815,7 @@
     document.getElementById('checkoutModal').classList.remove('open');
     document.getElementById('infoModal').classList.remove('open');
     document.getElementById('contactModal').classList.remove('open');
+    document.getElementById('trackingModal').classList.remove('open');
     document.getElementById('cartDrawer').classList.remove('open');
     document.getElementById('lightbox').classList.remove('open');
     if(document.getElementById('confirmModal').classList.contains('open')){ closeConfirmModal(false); }
@@ -2193,6 +2226,55 @@
       showToast('Erreur d\'envoi — réessayez dans un instant.');
     }finally{
       btn.disabled = false; btn.textContent = 'Envoyer';
+    }
+  }
+
+  function openTrackingModal(){
+    closeAllOverlays();
+    document.getElementById('overlayBg').classList.add('open');
+    document.getElementById('trackingFormWrap').style.display = '';
+    document.getElementById('trackingResult').style.display = 'none';
+    document.getElementById('trackingError').style.display = 'none';
+    document.getElementById('trackingForm').reset();
+    document.getElementById('trackingModal').classList.add('open');
+  }
+  async function submitTracking(e){
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type=submit]');
+    const errEl = document.getElementById('trackingError');
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Recherche…';
+
+    const reference = document.getElementById('trackingRef').value.trim();
+    const email = document.getElementById('trackingEmail').value.trim();
+
+    try{
+      const res = await fetch('/api/commandes/suivi?ref='+encodeURIComponent(reference)+'&email='+encodeURIComponent(email));
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok){
+        errEl.textContent = data.error || "Commande introuvable — vérifie la référence et l'e-mail.";
+        errEl.style.display = '';
+        return;
+      }
+      const STATUT_LABELS = {
+        en_attente_paiement: 'Paiement en attente',
+        payee: 'Confirmée',
+        preparation: 'En préparation',
+        expediee: 'Expédiée',
+        livree: 'Livrée',
+        expiree: 'Paiement non finalisé'
+      };
+      document.getElementById('trResultRef').textContent = data.reference;
+      document.getElementById('trResultDate').textContent = new Date(data.date_creation).toLocaleDateString('fr-FR');
+      document.getElementById('trResultTotal').textContent = fmtPrice(data.total);
+      document.getElementById('trResultStatut').textContent = STATUT_LABELS[data.statut_livraison || data.statut] || data.statut;
+      document.getElementById('trackingFormWrap').style.display = 'none';
+      document.getElementById('trackingResult').style.display = '';
+    }catch(err){
+      errEl.textContent = 'Impossible de vérifier la commande pour le moment.';
+      errEl.style.display = '';
+    }finally{
+      btn.disabled = false; btn.textContent = 'Voir le statut';
     }
   }
 
