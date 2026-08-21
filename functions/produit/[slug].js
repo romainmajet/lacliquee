@@ -35,13 +35,30 @@ export async function onRequestGet(context) {
     name: produit.name,
     description: produit.description,
     category: produit.category,
+    brand: { '@type': 'Brand', name: 'La Clique' },
     ...(imageUrl ? { image: imageUrl } : {}),
     offers: {
       '@type': 'Offer',
       priceCurrency: 'EUR',
       price: produit.price,
       availability: 'https://schema.org/InStock',
-      url: url
+      url: url,
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'FR',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 30
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: '4.90', currency: 'EUR' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'FR' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 2, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 4, unitCode: 'DAY' }
+        }
+      }
     }
   };
 
