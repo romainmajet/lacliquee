@@ -72,7 +72,7 @@
       const data = await res.json();
       sessionStorage.setItem('lc_admin_secret', secret);
       document.getElementById('loginBox').style.display = 'none';
-      document.getElementById('app').style.display = '';
+      document.getElementById('app').style.display = 'block';
       renderOrders(data.commandes || []);
     }catch(err){
       if(fromLogin){ document.getElementById('loginError').style.display=''; }
