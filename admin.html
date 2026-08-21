@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — La Clique</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root{--bg:#131110;--bg-card:#211c19;--line:#332c27;--oxblood:#8a2332;--gold:#b6905c;--bone:#efe7da;--bone-dim:#a89c8c;--ok:#7fbf7a;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--bone);font-family:'Segoe UI',Arial,sans-serif;line-height:1.5;}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 80px;}
+  h1{font-size:22px;margin-bottom:6px;}
+  p.sub{color:var(--bone-dim);font-size:13.5px;margin-bottom:28px;}
+  #loginBox{max-width:360px;margin:80px auto;background:var(--bg-card);border:1px solid var(--line);border-radius:14px;padding:28px;}
+  #loginBox input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--bone);font-size:14px;margin-bottom:12px;}
+  #loginBox button, .btn{background:var(--oxblood);color:var(--bone);border:none;border-radius:8px;padding:10px 16px;font-size:13.5px;cursor:pointer;font-weight:600;}
+  #loginBox button:hover, .btn:hover{opacity:0.9;}
+  #app{display:none;}
+  .order{background:var(--bg-card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+  .order-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .ref{font-weight:700;font-family:monospace;}
+  .meta{color:var(--bone-dim);font-size:12.5px;}
+  .stages{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+  .stage{font-size:11.5px;padding:4px 10px;border-radius:100px;border:1px solid var(--line);color:var(--bone-dim);}
+  .stage.done{background:rgba(127,191,122,0.15);border-color:var(--ok);color:var(--ok);}
+  .stage.current{background:rgba(182,144,92,0.15);border-color:var(--gold);color:var(--gold);}
+  .error{color:#e07a7a;font-size:13px;margin-bottom:10px;}
+  .empty{color:var(--bone-dim);text-align:center;padding:60px 0;}
+</style>
+</head>
+<body>
+
+<div id="loginBox">
+  <h1>Accès admin</h1>
+  <p class="sub">La Clique — suivi des commandes</p>
+  <input type="password" id="pwInput" placeholder="Mot de passe">
+  <p class="error" id="loginError" style="display:none;">Mot de passe incorrect</p>
+  <button onclick="tryLogin()" style="width:100%;">Entrer</button>
+</div>
+
+<div id="app">
+  <div class="wrap">
+    <h1>Commandes à suivre</h1>
+    <p class="sub">Clique sur une étape pour la faire passer à l'état suivant.</p>
+    <div id="ordersList"></div>
+  </div>
+</div>
+
+<script>
+  const STAGES = [
+    { key: 'confirmee', label: 'Confirmée' },
+    { key: 'preparation', label: 'En préparation' },
+    { key: 'expediee', label: 'Expédiée' },
+    { key: 'livree', label: 'Livrée' }
+  ];
+  let secret = sessionStorage.getItem('lc_admin_secret') || '';
+
+  function tryLogin(){
+    const pw = document.getElementById('pwInput').value;
+    secret = pw;
+    loadOrders(true);
+  }
+
+  async function loadOrders(fromLogin){
+    try{
+      const res = await fetch('/api/admin/commandes', { headers: { 'X-Admin-Secret': secret } });
+      if(!res.ok){
+        if(fromLogin){ document.getElementById('loginError').style.display=''; }
+        return;
+      }
+      const data = await res.json();
+      sessionStorage.setItem('lc_admin_secret', secret);
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('app').style.display = '';
+      renderOrders(data.commandes || []);
+    }catch(err){
+      if(fromLogin){ document.getElementById('loginError').style.display=''; }
+    }
+  }
+
+  function renderOrders(commandes){
+    const el = document.getElementById('ordersList');
+    if(commandes.length === 0){
+      el.innerHTML = '<div class="empty">Aucune commande payée pour le moment.</div>';
+      return;
+    }
+    el.innerHTML = commandes.map(c => {
+      const currentIdx = STAGES.findIndex(s => s.key === (c.statut_livraison || 'confirmee'));
+      const stagesHtml = STAGES.map((s, i) => {
+        let cls = '';
+        if(i < currentIdx) cls = 'done';
+        if(i === currentIdx) cls = 'current';
+        const clickable = i === currentIdx + 1;
+        return '<span class="stage ' + cls + '" ' +
+          (clickable ? `style="cursor:pointer;" onclick="setStatus('${c.reference}','${s.key}')"` : '') +
+          '>' + s.label + (clickable ? ' →' : '') + '</span>';
+      }).join('');
+      return `<div class="order">
+        <div class="order-top">
+          <span class="ref">${c.reference}</span>
+          <span class="meta">${c.nom} · ${c.email} · ${Number(c.total).toFixed(2)} €</span>
+        </div>
+        <div class="stages">${stagesHtml}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function setStatus(reference, statut){
+    await fetch('/api/admin/commandes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+      body: JSON.stringify({ reference, statut_livraison: statut })
+    });
+    loadOrders(false);
+  }
+
+  if(secret) loadOrders(false);
+</script>
+</body>
+</html>
